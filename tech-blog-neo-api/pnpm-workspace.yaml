@@ -1,0 +1,2 @@
+allowBuilds:
+  "@scarf/scarf": false  # swagger-ui-dist 의 사용 통계 수집 스크립트, 불필요
