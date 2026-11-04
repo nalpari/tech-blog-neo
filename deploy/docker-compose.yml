@@ -1,0 +1,51 @@
+# EC2 의 ~/tech-blog-neo/deploy 에서 실행한다. 값은 같은 폴더의 .env (.env.example 참고).
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      # 빈 볼륨으로 처음 뜰 때만 실행된다. 이후 마이그레이션은 수동으로 적용한다.
+      - ../tech-blog-neo-api/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  api:
+    image: ${DOCKERHUB_USERNAME}/tech-blog-neo-api:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      FRONT_URL: https://${DOMAIN}
+      GOOGLE_REDIRECT_URI: https://${DOMAIN}/api/auth/google/callback
+    depends_on:
+      db:
+        condition: service_healthy
+
+  front:
+    image: ${DOCKERHUB_USERNAME}/tech-blog-neo-front:latest
+    restart: unless-stopped
+    depends_on: [api]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [front, api]
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
