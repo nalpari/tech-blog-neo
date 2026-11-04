@@ -44,7 +44,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: deploy/docker-compose.yml,deploy/Caddyfile,tech-blog-neo-api/db
+          source: deploy/docker-compose.yml,tech-blog-neo-api/db
           target: tech-blog-neo # EC2 사용자 홈 기준
       - uses: appleboy/ssh-action@v1
         with:
