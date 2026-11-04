@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@import "./fanfold.css";
+
+html,
+body {
+  margin: 0;
+  background: #0f1419;
+}
