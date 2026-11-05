@@ -22,7 +22,7 @@ async function AuthorContent({ params, searchParams }: PageProps<"/authors/[user
   const totalViews = posts.items.reduce((n, p) => n + p.viewCount, 0);
   return (
     <>
-      <header className="grid gap-8 px-6 pb-12 pt-12 md:px-12 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,4fr)] lg:items-end">
+      <header className="grid gap-8 px-6 pb-12 pt-12 md:px-12 lg:grid-cols-[auto_minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
         <Avatar author={author} size={128} />
         <div className="min-w-0">
           <h1 className="break-words font-extrabold leading-[0.95] tracking-[-0.04em]" style={{ fontSize: "clamp(3rem, 7vw, 6rem)" }}>{nameOf(author)}</h1>
