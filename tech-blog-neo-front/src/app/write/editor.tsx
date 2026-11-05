@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { send, type Me, type PostDetail, type TagInfo } from "@/lib/api";
 import { Markdown } from "@/components/markdown";
@@ -21,6 +22,7 @@ export function Editor({ me, tags: allTags, covers, post }: { me: Me; tags: TagI
   const [justPublished, setJustPublished] = useState(false);
   const [tried, setTried] = useState(false);
   const [apiError, setApiError] = useState("");
+  const router = useRouter();
 
   // 기존 글과 같은 "N min read" 형식. 500자 ≈ 1분.
   const readTime = `${Math.max(1, Math.round(body.replace(/\s/g, "").length / 500))} min read`;
@@ -68,6 +70,13 @@ export function Editor({ me, tags: allTags, covers, post }: { me: Me; tags: TagI
     }
   };
 
+  // 저장한 글이면 그 글로, 새 글이면 홈으로. 저장 안 한 변경이 있으면 한 번 묻는다.
+  const cancel = () => {
+    const dirty = saveState === "idle" && (saved || title || excerpt || body);
+    if (dirty && !window.confirm("저장하지 않은 변경이 사라집니다. 나갈까요?")) return;
+    router.push(saved ? `/posts/${encodeURIComponent(saved.slug)}` : "/");
+  };
+
   const toggleTag = (s: string) => {
     touch();
     setTags((t) => (t.includes(s) ? t.filter((x) => x !== s) : [...t, s]));
@@ -90,6 +99,9 @@ export function Editor({ me, tags: allTags, covers, post }: { me: Me; tags: TagI
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <button type="button" onClick={cancel} disabled={saveState === "saving"} className="ff-btn h-10 bg-transparent px-4 text-[14px] text-[var(--ink-2)] hover:bg-[var(--band-deep)]">
+            취소
+          </button>
           {!published && (
             <button type="button" onClick={() => submit("draft")} disabled={saveState !== "idle"} className="ff-btn h-10 bg-transparent px-4 text-[14px] text-[var(--ink-2)] hover:bg-[var(--band-deep)]">
               초안 저장
