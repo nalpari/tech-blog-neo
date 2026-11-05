@@ -65,9 +65,11 @@ pnpm dev
 | --- | --- | --- |
 | API | `pnpm build` | 빌드 |
 | API | `pnpm lint` | oxlint |
+| API | `pnpm exec tsc --noEmit` | 타입 체크 |
 | API | `pnpm test:e2e` | e2e 테스트 |
 | 프론트 | `pnpm build` | 빌드 |
 | 프론트 | `pnpm lint` | ESLint |
+| 프론트 | `pnpm exec next typegen && pnpm exec tsc --noEmit` | 타입 체크. `PageProps` 같은 라우트 타입을 먼저 만들어야 한다 |
 
 e2e 테스트는 `.env` 의 실제 PostgreSQL 에 데이터를 쓰고, admin 과 user 프로필이 이미 있어야 한다. 운영 DB 가 아닌 곳에서 돌린다. `pnpm test` 는 단위 테스트만 고르므로 e2e 를 돌리지 않는다.
 
