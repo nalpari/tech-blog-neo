@@ -16,13 +16,13 @@ interplug 팀의 테크블로그. 팀원 여러 명이 글을 쓰고, 사내와 
 
 ## Operating Context
 - 저자: Google 로그인을 한 팀원 여러 명. 글마다 저자 프로필(username, displayName, avatar)이 노출된다.
-- 역할: admin, user. 프로필 역할은 admin이 바꾼다.
+- 역할: admin, author, user. 글쓰기는 admin과 author만 할 수 있고, 프로필 역할은 admin이 바꾼다.
 - 독자 행동: 글 목록과 태그 탐색, 글 읽기, 좋아요. 조회수가 집계된다.
 
 ## Capabilities and Constraints
-- API: NestJS/PostgreSQL (`tech-blog-neo-api`). 글, 태그, 프로필, Google OAuth 세션.
+- API: NestJS/PostgreSQL (`tech-blog-neo-api`). 글, 태그, 프로필, S3 커버 이미지 목록, Google OAuth 세션.
 - 글 필드: slug, title, excerpt, markdown content, coverImage 또는 coverGradient, status(draft/published), featured, readTime, publishedAt, viewCount, likeCount, author, tags.
-- 프론트엔드: Next.js (`tech-blog-neo-front`). 현재는 스타터 상태이고 API 연동이 없다.
+- 프론트엔드: Next.js (`tech-blog-neo-front`). 글 목록·글·태그·저자 페이지와 글쓰기 에디터가 API와 연동되어 있다.
 - 본문은 markdown이다.
 
 ## Brand Commitments

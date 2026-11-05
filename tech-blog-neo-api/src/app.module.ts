@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { createObserveModule } from '@nestjs/observe';
 import { AuthController } from './auth.controller.js';
+import { CoversController } from './covers.controller.js';
 import { Db, DbErrorFilter } from './db.js';
 import { PostsController } from './posts.controller.js';
 import { ProfilesController } from './profiles.controller.js';
@@ -22,6 +23,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   ],
   controllers: [
     AuthController,
+    CoversController,
     PostsController,
     ProfilesController,
     TagsController,

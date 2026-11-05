@@ -10,9 +10,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Frontend map and commands
 
-- `src/app/page.tsx` is the starter home page; `layout.tsx` supplies metadata and Geist fonts; `globals.css` contains global styles.
+- `src/app/` holds the blog routes: home (`page.tsx`), `posts/[slug]`, `tags`, `authors`, and the editor at `write`. `layout.tsx` supplies metadata and loads Pretendard and D2Coding from a CDN; `globals.css` and `fanfold.css` contain global styles.
+- `src/lib/api.ts` is the API client shared by browser and server (`NEXT_PUBLIC_API_URL`, default `http://localhost:4000`); `src/lib/server-api.ts` forwards the session cookie for authenticated server reads.
 - `next.config.ts` enables cache components, partial prefetching, React Compiler and a Tailwind Turbopack loader. `@/*` maps to `src/*`.
 - From this directory use `pnpm install`, `pnpm dev`, `pnpm build`, or `pnpm lint`. There is no test script currently.
+- `PageProps` and `LayoutProps` are generated route types. Run `pnpm exec next typegen` (or `pnpm build`) before a standalone `pnpm exec tsc --noEmit`.
 
 <!-- BEGIN:nextjs-agent-feedback -->
 

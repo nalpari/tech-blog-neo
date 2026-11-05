@@ -1,20 +1,14 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { send, type Me, type PostDetail, type TagInfo } from "@/lib/api";
 import { Markdown } from "@/components/markdown";
 import { Sheet, Wordmark } from "@/components/ui";
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-// MagicPath 시안에 들어 있던 커버 이미지. 고를 수 있는 기본값으로 둔다.
-const ASSETS = "https://storage.googleapis.com/storage.magicpath.ai/component-assets/468569851552747520/468569851552747521";
-const COVERS = [
-  `${ASSETS}/1adc6bce2de631b88bb4862e332876ef5c105aec20ea6e0ee839209c72034ca4.jpg`,
-  `${ASSETS}/0b427a0971f14b54e99af878f1bb6161669d2baf3539d9b786e5be2c62c5a150.jpg`,
-  `${ASSETS}/0288bb7d8b0222143f7f93bb178bbab59072b572d117d36ab78d6c3b07457eb9.jpg`,
-];
 
-export function Editor({ me, tags: allTags, post }: { me: Me; tags: TagInfo[]; post: PostDetail | null }) {
+export function Editor({ me, tags: allTags, covers, post }: { me: Me; tags: TagInfo[]; covers: string[]; post: PostDetail | null }) {
   const [title, setTitle] = useState(post?.title ?? "");
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
   const [slug, setSlug] = useState(post?.slug ?? "");
@@ -28,6 +22,7 @@ export function Editor({ me, tags: allTags, post }: { me: Me; tags: TagInfo[]; p
   const [justPublished, setJustPublished] = useState(false);
   const [tried, setTried] = useState(false);
   const [apiError, setApiError] = useState("");
+  const router = useRouter();
 
   // 기존 글과 같은 "N min read" 형식. 500자 ≈ 1분.
   const readTime = `${Math.max(1, Math.round(body.replace(/\s/g, "").length / 500))} min read`;
@@ -75,6 +70,13 @@ export function Editor({ me, tags: allTags, post }: { me: Me; tags: TagInfo[]; p
     }
   };
 
+  // 저장한 글이면 그 글로, 새 글이면 홈으로. 저장 안 한 변경이 있으면 한 번 묻는다.
+  const cancel = () => {
+    const dirty = saveState === "idle" && (saved || title || excerpt || body);
+    if (dirty && !window.confirm("저장하지 않은 변경이 사라집니다. 나갈까요?")) return;
+    router.push(saved ? `/posts/${encodeURIComponent(saved.slug)}` : "/");
+  };
+
   const toggleTag = (s: string) => {
     touch();
     setTags((t) => (t.includes(s) ? t.filter((x) => x !== s) : [...t, s]));
@@ -97,6 +99,9 @@ export function Editor({ me, tags: allTags, post }: { me: Me; tags: TagInfo[]; p
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <button type="button" onClick={cancel} disabled={saveState === "saving"} className="ff-btn h-10 bg-transparent px-4 text-[14px] text-[var(--ink-2)] hover:bg-[var(--band-deep)]">
+            취소
+          </button>
           {!published && (
             <button type="button" onClick={() => submit("draft")} disabled={saveState !== "idle"} className="ff-btn h-10 bg-transparent px-4 text-[14px] text-[var(--ink-2)] hover:bg-[var(--band-deep)]">
               초안 저장
@@ -186,7 +191,7 @@ export function Editor({ me, tags: allTags, post }: { me: Me; tags: TagInfo[]; p
           <fieldset className="mt-6">
             <legend className="text-[14px] font-semibold">커버</legend>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              {COVERS.map((c, n) => (
+              {covers.map((c, n) => (
                 <button key={c} type="button" aria-pressed={cover === c} aria-label={`커버 이미지 ${n + 1}`} onClick={() => pickCover(c)} className={`block outline-offset-2 ${cover === c ? "outline outline-2 outline-[var(--accent)]" : "opacity-80 hover:opacity-100"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element -- 외부 커버 URL */}
                   <img src={c} alt="" className="block aspect-[4/3] w-full object-cover" />
@@ -198,7 +203,7 @@ export function Editor({ me, tags: allTags, post }: { me: Me; tags: TagInfo[]; p
               </button>
             </div>
             <label htmlFor="cover-url" className="mt-3 block text-[13px] text-[var(--ink-2)]">또는 이미지 주소</label>
-            <input id="cover-url" type="url" placeholder="https://" value={cover && !COVERS.includes(cover) ? cover : ""} onChange={(e) => pickCover(e.target.value || null)} className="mt-1 h-10 w-full border-0 bg-[var(--raised)] px-3 text-[15px]" />
+            <input id="cover-url" type="url" placeholder="https://" value={cover && !covers.includes(cover) ? cover : ""} onChange={(e) => pickCover(e.target.value || null)} className="mt-1 h-10 w-full border-0 bg-[var(--raised)] px-3 text-[15px]" />
           </fieldset>
 
           <div className="mt-6">
