@@ -1,6 +1,6 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Sprocket rail: holes advance one pitch at a time as the reader scrolls. */
 export function Rail({ side }: { side: "left" | "right" }) {
@@ -57,5 +57,51 @@ export function CopyButton({ text, label, done, className }: { text: string | ((
     <button type="button" onClick={copy} className={className} aria-live="polite">
       {copied ? done : label}
     </button>
+  );
+}
+
+/** 마운트될 때 id 요소로 스크롤. 검색 결과가 스트리밍으로 늦게 그려져 #hash 스크롤이 빗나가는 걸 메운다. */
+export function ScrollTo({ id }: { id: string }) {
+  useEffect(() => {
+    document.getElementById(id)?.scrollIntoView();
+  }, [id]);
+  return null;
+}
+
+/** 헤더의 검색 버튼. 누르면 검색 레이어(<dialog>)가 뜨고, 제출하면 홈의 글 목록을 ?q= 로 거른다. */
+export function SearchButton() {
+  const router = useRouter();
+  const dialog = useRef<HTMLDialogElement>(null);
+  return (
+    <>
+      <button type="button" onClick={() => dialog.current?.showModal()} aria-label="검색" className="inline-flex h-10 w-10 items-center justify-center text-[var(--ink-2)] hover:bg-[var(--band)] hover:text-[var(--ink)]">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+      </button>
+      <dialog
+        ref={dialog}
+        aria-label="글 검색"
+        onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
+        className="mx-auto mt-[12vh] w-[min(560px,calc(100%-2rem))] bg-[var(--band)] p-0 text-[var(--ink)] backdrop:bg-black/60"
+      >
+        <form
+          role="search"
+          action="/"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const q = String(new FormData(e.currentTarget).get("q") ?? "").trim();
+            dialog.current?.close();
+            router.push(q ? `/?${new URLSearchParams({ q })}#recent` : "/");
+          }}
+          className="flex gap-2 p-4"
+        >
+          <label htmlFor="site-search" className="sr-only">제목·요약 검색</label>
+          <input id="site-search" name="q" type="search" placeholder="제목·요약 검색" className="h-11 min-w-0 flex-1 border-0 bg-[var(--band-deep)] px-4 text-[16px]" />
+          <button type="submit" className="ff-btn primary h-11 shrink-0 px-5 text-[15px]">검색</button>
+        </form>
+      </dialog>
+    </>
   );
 }

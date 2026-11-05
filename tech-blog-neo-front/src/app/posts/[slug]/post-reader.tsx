@@ -204,6 +204,12 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
               {profile?.bio && <p className="mt-4 text-[15px] leading-relaxed">{profile.bio}</p>}
               {profile && <Link href={authorHref} className="ff-link mt-4 inline-block text-[15px]">이 저자의 글 {profile.postCount}편</Link>}
             </section>
+            {(editHref || deleteHref) && (
+              <div className="mt-3 flex gap-2">
+                {editHref && <Link href={editHref} className="ff-btn quiet flex-1 justify-center">수정</Link>}
+                {deleteHref && <button type="button" onClick={deletePost} className="ff-btn quiet flex-1 justify-center text-[var(--err)]">삭제</button>}
+              </div>
+            )}
             {post.publishedAt && (
               <section aria-labelledby="history-h" className="mt-6 px-1">
                 <h2 id="history-h" className="text-[15px] font-bold">수정 이력</h2>

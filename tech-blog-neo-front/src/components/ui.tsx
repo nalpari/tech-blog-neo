@@ -2,7 +2,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { nameOf, type Author, type Me, type PostSummary } from "@/lib/api";
-import { Rail } from "./client";
+import { Rail, SearchButton } from "./client";
 import { UserMenu } from "./user-menu";
 import { DotmSquare18 } from "./ui/dotm-square-18";
 
@@ -57,6 +57,7 @@ export function TopNavLinks({ current, user }: { current?: "글" | "태그" | "�
             {it}
           </Link>
         ))}
+        <SearchButton />
         <Link href="/write" className="ff-btn primary ml-2 h-10 px-4 text-[14px]">글쓰기</Link>
         {user && <UserMenu me={user} />}
       </div>
