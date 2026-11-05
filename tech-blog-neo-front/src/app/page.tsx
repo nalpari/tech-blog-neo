@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { fmtDate, get, getPosts, nameOf, type PostList, type PostSummary, type TagInfo } from "@/lib/api";
-import { SortSelect } from "@/components/client";
+import { ScrollTo, SortSelect } from "@/components/client";
 import { Avatar, Cover, Empty, Loading, Sheet, Wordmark } from "@/components/ui";
 import { TopNav } from "@/components/top-nav";
 import { ResumeBanner } from "./resume-banner";
@@ -75,15 +75,16 @@ async function RecentPosts({ searchParams }: Pick<PageProps<"/">, "searchParams"
   const sp = await searchParams;
   const tag = typeof sp.tag === "string" ? sp.tag : "";
   const sort = sp.sort === "popular" ? "popular" : "latest";
+  const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const limit = Math.max(STEP, Number(sp.limit) || STEP);
   const [tags, list] = await Promise.all([
     get<TagInfo[]>("/tags").then((t) => t ?? []),
-    getPosts(new URLSearchParams({ tag, sort }).toString(), limit),
+    getPosts(new URLSearchParams({ tag, sort, q }).toString(), limit),
   ]);
   const qs = (patch: Record<string, string>) => {
-    const q = new URLSearchParams({ ...(tag && { tag }), ...(sort === "popular" && { sort }), ...patch });
-    for (const [k, v] of [...q]) if (!v) q.delete(k);
-    return `/?${q}#recent`;
+    const p = new URLSearchParams({ ...(tag && { tag }), ...(sort === "popular" && { sort }), ...(q && { q }), ...patch });
+    for (const [k, v] of [...p]) if (!v) p.delete(k);
+    return `/?${p}#recent`;
   };
   const tagName = tags.find((t) => t.slug === tag)?.name ?? tag;
   const remaining = list.total - list.items.length;
@@ -104,6 +105,14 @@ async function RecentPosts({ searchParams }: Pick<PageProps<"/">, "searchParams"
           </div>
         </div>
 
+        {q && (
+          <p className="mt-6 px-6 text-[15px] text-[var(--ink-2)] md:px-12" aria-live="polite">
+            <ScrollTo key={q} id="recent" />
+            <strong className="text-[var(--ink)]">&lsquo;{q}&rsquo;</strong> 검색 결과 {list.total}개
+            <Link href={qs({ q: "", limit: "" })} scroll={false} className="ml-3 underline underline-offset-4 hover:text-[var(--accent)]">검색 지우기</Link>
+          </p>
+        )}
+
         <div className="mt-8 hidden px-6 pb-3 text-[13px] font-medium text-[var(--ink-2)] md:grid md:grid-cols-[96px_minmax(0,1fr)_140px_88px] md:gap-x-6 md:px-12 lg:grid-cols-[96px_120px_minmax(0,1fr)_150px_96px]" aria-hidden="true">
           <span>발행일</span>
           <span className="hidden lg:block" />
@@ -113,11 +122,15 @@ async function RecentPosts({ searchParams }: Pick<PageProps<"/">, "searchParams"
         </div>
 
         {list.items.length > 0 ? (
-          <ul key={`${tag}-${sort}`} className="ff-printing">
+          <ul key={`${tag}-${sort}-${q}`} className="ff-printing">
             {list.items.map((p, i) => <IndexRow key={p.slug} post={p} index={i % STEP} />)}
           </ul>
         ) : (
+          q ? (
+          <Empty title={`'${q}'에 맞는 글이 없습니다.`} body="다른 검색어를 쓰거나 태그 거르기를 풀어 보세요." />
+        ) : (
           <Empty title={tag ? `${tagName} 태그로 쓴 글이 아직 없습니다.` : "아직 발행한 글이 없습니다."} body="다른 태그를 고르거나 전체 글을 보세요." />
+        )
         )}
 
         {remaining > 0 && (
