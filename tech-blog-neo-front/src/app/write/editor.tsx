@@ -6,15 +6,8 @@ import { Markdown } from "@/components/markdown";
 import { Sheet, Wordmark } from "@/components/ui";
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-// MagicPath 시안에 들어 있던 커버 이미지. 고를 수 있는 기본값으로 둔다.
-const ASSETS = "https://storage.googleapis.com/storage.magicpath.ai/component-assets/468569851552747520/468569851552747521";
-const COVERS = [
-  `${ASSETS}/1adc6bce2de631b88bb4862e332876ef5c105aec20ea6e0ee839209c72034ca4.jpg`,
-  `${ASSETS}/0b427a0971f14b54e99af878f1bb6161669d2baf3539d9b786e5be2c62c5a150.jpg`,
-  `${ASSETS}/0288bb7d8b0222143f7f93bb178bbab59072b572d117d36ab78d6c3b07457eb9.jpg`,
-];
 
-export function Editor({ me, tags: allTags, post }: { me: Me; tags: TagInfo[]; post: PostDetail | null }) {
+export function Editor({ me, tags: allTags, covers, post }: { me: Me; tags: TagInfo[]; covers: string[]; post: PostDetail | null }) {
   const [title, setTitle] = useState(post?.title ?? "");
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
   const [slug, setSlug] = useState(post?.slug ?? "");
@@ -186,7 +179,7 @@ export function Editor({ me, tags: allTags, post }: { me: Me; tags: TagInfo[]; p
           <fieldset className="mt-6">
             <legend className="text-[14px] font-semibold">커버</legend>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              {COVERS.map((c, n) => (
+              {covers.map((c, n) => (
                 <button key={c} type="button" aria-pressed={cover === c} aria-label={`커버 이미지 ${n + 1}`} onClick={() => pickCover(c)} className={`block outline-offset-2 ${cover === c ? "outline outline-2 outline-[var(--accent)]" : "opacity-80 hover:opacity-100"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element -- 외부 커버 URL */}
                   <img src={c} alt="" className="block aspect-[4/3] w-full object-cover" />
@@ -198,7 +191,7 @@ export function Editor({ me, tags: allTags, post }: { me: Me; tags: TagInfo[]; p
               </button>
             </div>
             <label htmlFor="cover-url" className="mt-3 block text-[13px] text-[var(--ink-2)]">또는 이미지 주소</label>
-            <input id="cover-url" type="url" placeholder="https://" value={cover && !COVERS.includes(cover) ? cover : ""} onChange={(e) => pickCover(e.target.value || null)} className="mt-1 h-10 w-full border-0 bg-[var(--raised)] px-3 text-[15px]" />
+            <input id="cover-url" type="url" placeholder="https://" value={cover && !covers.includes(cover) ? cover : ""} onChange={(e) => pickCover(e.target.value || null)} className="mt-1 h-10 w-full border-0 bg-[var(--raised)] px-3 text-[15px]" />
           </fieldset>
 
           <div className="mt-6">
