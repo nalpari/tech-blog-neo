@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>인증 영역 E2E 수행 결과 (E2E-001 ~ 014)</title>
+<style>:root{
+  --ground:#e9edf2; --surface:#fff; --ink:#111823; --ink-2:#47505e; --ink-3:#5d6676; --step:#f3f5f8; --step-2:#dde3ea;
+  --accent:#1b4f8a;
+  --pass:#0f6b3c; --pass-bg:#dcf2e5; --fail:#a8231b; --fail-bg:#fbe3e0; --hold:#7a4f00; --hold-bg:#faecc8; --skip:#434b58; --skip-bg:#e1e5ea;
+  --font:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","D2Coding",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--ground);color:var(--ink);font:400 16px/1.65 var(--font);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+::selection{background:var(--accent);color:#fff}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,summary:focus-visible{outline:3px solid #f2a900;outline-offset:2px}
+code{font:500 .88em var(--mono);background:var(--step);padding:.1em .38em;border-radius:3px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+
+/* 머리글 */
+.top{background:var(--ink);color:#f2f5f9;padding:56px 0 48px}
+.top h1{margin:0;font-size:clamp(30px,4.4vw,48px);line-height:1.15;font-weight:800;letter-spacing:-.025em;max-width:20ch}
+.top .lede{margin:18px 0 0;max-width:62ch;color:#c4ccd8;font-size:17px}
+.top .lede b{color:#fff}
+
+/* 요약 */
+.summary{padding:40px 0 8px}
+.counts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.count{background:var(--surface);padding:18px 20px;border-radius:8px}
+.count b{display:block;font-size:44px;line-height:1;font-weight:800;letter-spacing:-.03em}
+.count span{display:block;margin-top:8px;font-weight:600;font-size:15px}
+.count.pass b,.count.pass span{color:var(--pass)} .count.fail b,.count.fail span{color:var(--fail)}
+.count.hold b,.count.hold span{color:var(--hold)} .count.skip b,.count.skip span{color:var(--skip)}
+.count.zero{background:transparent;box-shadow:inset 0 0 0 2px var(--step-2)}
+.count.zero b{opacity:.55}
+.bar{display:flex;height:14px;margin:16px 0 0;border-radius:7px;overflow:hidden;background:var(--step-2)}
+.bar i{display:block} .bar i.pass{background:var(--pass)} .bar i.fail{background:var(--fail)} .bar i.hold{background:#c18200} .bar i.skip{background:#7a8494}
+.tiles{display:grid;grid-template-columns:repeat(14,1fr);gap:6px;margin:20px 0 0}
+.tile{display:flex;flex-direction:column;align-items:center;padding:8px 2px 7px;border-radius:6px;text-decoration:none;font-size:12px;line-height:1.3;transition:transform .15s cubic-bezier(.2,.8,.2,1)}
+.tile b{font-size:16px;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.tile:hover{transform:translateY(-2px)}
+.tile.pass{background:var(--pass-bg);color:var(--pass)} .tile.fail{background:var(--fail);color:#fff} .tile.hold{background:var(--hold-bg);color:var(--hold)} .tile.skip{background:var(--skip-bg);color:var(--skip)}
+.hint{margin:10px 0 0;color:var(--ink-3);font-size:14px}
+
+/* 절 */
+section.block{padding:52px 0 0}
+#issues-sec{counter-reset:f}
+#issues-sec .finding h3::before{content:counter(f);display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:13px;background:var(--ink);color:#fff;font-size:14px;font-weight:700}
+section.block>h2,.wrap>h2{margin:0 0 20px;font-size:26px;line-height:1.25;font-weight:800;letter-spacing:-.02em}
+.sub{color:var(--ink-2);margin:-8px 0 20px;max-width:70ch}
+
+table.res{width:100%;border-collapse:collapse;background:var(--surface);border-radius:8px;overflow:hidden;font-size:15px}
+table.res th{text-align:left;background:var(--step-2);padding:10px 14px;font-size:14px}
+table.res td{padding:10px 14px;vertical-align:top;border-top:1px solid var(--step-2)}
+table.res td:first-child{white-space:nowrap;font-weight:700;font-variant-numeric:tabular-nums}
+
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-weight:700;font-size:14px;line-height:1.5;white-space:nowrap}
+.badge.sm{padding:1px 10px;font-size:13px}
+.badge.pass{background:var(--pass-bg);color:var(--pass)} .badge.fail{background:var(--fail);color:#fff}
+.badge.hold{background:var(--hold-bg);color:var(--hold)} .badge.skip{background:var(--skip-bg);color:var(--skip)}
+
+/* 발견 사항 */
+.finding{background:var(--surface);border-radius:8px;padding:22px 26px;margin:0 0 14px}
+.finding h3{margin:0 0 6px;font-size:19px;line-height:1.4;letter-spacing:-.01em;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.finding h3 .sev{font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--step-2);color:var(--ink-2)}
+.finding h3 .sev.hi{background:var(--fail);color:#fff} .finding h3 .sev.mid{background:var(--hold-bg);color:var(--hold)}
+#issues-sec .finding{counter-increment:f}
+.finding p{margin:8px 0 0;max-width:78ch}
+.finding .fix{margin-top:12px;padding:12px 16px;background:var(--step);border-radius:6px}
+.finding .fix p{margin:0}
+pre.code{margin:10px 0 0;background:var(--ink);color:#e6ebf2;padding:14px 16px;border-radius:6px;overflow-x:auto;font:400 13px/1.6 var(--mono);white-space:pre}
+
+/* 환경 */
+dl.env{display:grid;grid-template-columns:max-content 1fr;gap:0;background:var(--surface);border-radius:8px;overflow:hidden;margin:0}
+dl.env dt,dl.env dd{padding:11px 16px;margin:0;border-top:1px solid var(--step-2)}
+dl.env dt:first-of-type,dl.env dt:first-of-type+dd{border-top:0}
+dl.env dt{font-weight:700;background:var(--step);padding-right:28px}
+.method{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.method>div{background:var(--surface);border-radius:8px;padding:18px 20px}
+.method h3{margin:0 0 6px;font-size:16px}
+.method p{margin:0;font-size:15px;color:var(--ink-2)}
+.method .ids{margin-top:10px;font-weight:600;color:var(--ink);font-size:14px}
+
+/* 시나리오 카드 */
+.card{background:var(--surface);border-radius:10px;margin:0 0 28px;overflow:hidden}
+.card>header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding:20px 26px}
+.card.pass>header{background:var(--pass-bg)} .card.fail>header{background:var(--fail-bg)} .card.hold>header{background:var(--hold-bg)} .card.skip>header{background:var(--skip-bg)}
+.hd-l{min-width:0}
+.id{display:block;font-weight:800;font-size:14px;letter-spacing:.01em;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.card h3{margin:2px 0 0;font-size:21px;line-height:1.4;letter-spacing:-.015em;max-width:44ch}
+.hd-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+.meta{font-size:14px;color:var(--ink-2);font-weight:500}
+.card .badge.pass{background:var(--pass);color:#fff}
+.card.fail .badge{font-size:15px}
+.cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:0}
+.spec,.result{padding:22px 26px}
+.spec{background:var(--step)}
+.cols h4{margin:20px 0 4px;font-size:14px;font-weight:700;color:var(--ink-2)}
+.cols h4:first-child{margin-top:0}
+.cols p,.cols ol{margin:0 0 8px;font-size:15px;max-width:68ch}
+.cols ol{padding-left:22px}
+.result p{font-size:16px;margin:0 0 12px}
+.card.fail .result{background:#fff}
+.shots{display:grid;gap:14px;padding:6px 26px 6px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.shots.n1{grid-template-columns:minmax(0,1fr);max-width:900px}
+.shots figure{margin:0}
+.shots a{display:block;background:var(--step-2);border-radius:6px;overflow:hidden;line-height:0}
+.shots img{width:100%;height:auto;display:block;transition:opacity .15s}
+.shots a:hover img{opacity:.88}
+.shots figcaption{margin:6px 2px 0;font-size:14px;line-height:1.5;color:var(--ink-2)}
+.ev{margin:12px 26px 0;border-radius:6px;background:var(--step)}
+.ev:last-child{margin-bottom:22px}
+.ev summary{cursor:pointer;padding:9px 14px;font-size:14px;font-weight:600;color:var(--ink-2)}
+.ev pre{margin:0;padding:12px 16px 14px;background:var(--ink);color:#e6ebf2;font:400 12.5px/1.6 var(--mono);overflow-x:auto;white-space:pre;border-radius:0 0 6px 6px}
+.shots+.ev,.cols+.ev{margin-top:16px}
+.shots{padding-bottom:6px}
+.card>.shots:last-child{padding-bottom:24px}
+
+footer.end{padding:44px 0 72px;color:var(--ink-2);font-size:14px}
+.up{display:inline-block;margin-top:8px}
+
+@media (max-width:900px){
+  .counts{grid-template-columns:repeat(2,1fr)}
+  .tiles{grid-template-columns:repeat(7,1fr)}
+  .cols{grid-template-columns:1fr}
+  .method{grid-template-columns:1fr}
+  .card>header{flex-direction:column;gap:12px;padding:18px 18px}
+  .hd-r{flex-direction:row;align-items:center;gap:12px}
+  .spec,.result{padding:18px}
+  .shots,.ev{padding-left:18px;padding-right:18px}.ev{margin-left:18px;margin-right:18px;padding:0}
+  .shots{grid-template-columns:1fr}
+  dl.env{grid-template-columns:1fr}
+  dl.env dt{padding-bottom:2px;border-top:1px solid var(--step-2)}
+  dl.env dd{border-top:0;padding-top:2px}
+}
+@media (max-width:560px){.wrap{padding:0 16px}.top{padding:40px 0 36px}.card h3{font-size:19px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1>인증 영역 E2E 수행 결과</h1>
+    <p class="lede">E2E-001부터 014까지 14건을 로컬 환경에서 직접 수행했다. <b>12건 통과, 2건 실패.</b> 실패는 둘 다 신규 사용자 첫 로그인이 500 으로 끝나는 같은 원인이다.</p>
+  </div>
+</header>
+
+<main class="wrap">
+<section class="summary" aria-labelledby="sum">
+  <h2 id="sum" style="position:absolute;left:-9999px">요약</h2>
+  <div class="counts">
+    <div class="count pass"><b>12</b><span>통과</span></div>
+    <div class="count fail"><b>2</b><span>실패</span></div>
+    <div class="count hold zero"><b>0</b><span>보류</span></div>
+    <div class="count skip zero"><b>0</b><span>미수행</span></div>
+  </div>
+  <div class="bar" role="img" aria-label="통과 12, 실패 2, 보류 0, 미수행 0 (전체 14건)"><i class="pass" style="flex:12"></i><i class="fail" style="flex:2"></i></div>
+  <nav class="tiles" aria-label="시나리오 바로가기"><a class="tile pass" href="#E2E-001" title="비로그인 상태에서 글쓰기 진입 시 로그인 게이트 노출"><b>001</b><span>통과</span></a><a class="tile pass" href="#E2E-002" title="로그인 시작 시 Google 로 리다이렉트되고 state 쿠키 발급"><b>002</b><span>통과</span></a><a class="tile pass" href="#E2E-003" title="기존 계정(관리자) 이메일로 로그인 완료"><b>003</b><span>통과</span></a><a class="tile fail" href="#E2E-004" title="신규 사용자 최초 로그인 시 계정·프로필 자동 생성 (기본 역할 user)"><b>004</b><span>실패</span></a><a class="tile fail" href="#E2E-005" title="이메일 앞부분 username 이 이미 있을 때 접미사 부여"><b>005</b><span>실패</span></a><a class="tile pass" href="#E2E-006" title="OAuth state 불일치 또는 쿠키 없음이면 로그인 거부"><b>006</b><span>통과</span></a><a class="tile pass" href="#E2E-007" title="Google 토큰 교환 실패 또는 id_token 클레임 불일치 시 거부"><b>007</b><span>통과</span></a><a class="tile pass" href="#E2E-008" title="세션 쿠키 속성 확인"><b>008</b><span>통과</span></a><a class="tile pass" href="#E2E-009" title="변조된 세션 쿠키는 비로그인으로 처리"><b>009</b><span>통과</span></a><a class="tile pass" href="#E2E-010" title="만료된 세션(7일 초과)은 비로그인으로 처리"><b>010</b><span>통과</span></a><a class="tile pass" href="#E2E-011" title="작성 중 세션이 만료되면 저장 시 로그인 화면으로 이동"><b>011</b><span>통과</span></a><a class="tile pass" href="#E2E-012" title="사용자 메뉴에서 로그아웃"><b>012</b><span>통과</span></a><a class="tile pass" href="#E2E-013" title="비로그인 상태에서 /auth/logout 호출"><b>013</b><span>통과</span></a><a class="tile pass" href="#E2E-014" title="로그인 여부에 따른 헤더 아바타/메뉴 표시"><b>014</b><span>통과</span></a></nav>
+  <p class="hint">칸을 누르면 해당 시나리오 카드로 이동한다. 칸의 숫자는 E2E-0NN 의 NN.</p>
+</section>
+
+<section class="block" aria-labelledby="list">
+  <h2 id="list">시나리오별 판정</h2>
+  <table class="res"><thead><tr><th>ID</th><th>시나리오</th><th>우선순위</th><th>판정</th></tr></thead><tbody><tr><td><a href="#E2E-001">E2E-001</a></td><td>비로그인 상태에서 글쓰기 진입 시 로그인 게이트 노출</td><td>P0</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-002">E2E-002</a></td><td>로그인 시작 시 Google 로 리다이렉트되고 state 쿠키 발급</td><td>P0</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-003">E2E-003</a></td><td>기존 계정(관리자) 이메일로 로그인 완료</td><td>P0</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-004">E2E-004</a></td><td>신규 사용자 최초 로그인 시 계정·프로필 자동 생성 (기본 역할 user)</td><td>P0</td><td><span class="badge sm fail">실패</span></td></tr><tr><td><a href="#E2E-005">E2E-005</a></td><td>이메일 앞부분 username 이 이미 있을 때 접미사 부여</td><td>P2</td><td><span class="badge sm fail">실패</span></td></tr><tr><td><a href="#E2E-006">E2E-006</a></td><td>OAuth state 불일치 또는 쿠키 없음이면 로그인 거부</td><td>P1</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-007">E2E-007</a></td><td>Google 토큰 교환 실패 또는 id_token 클레임 불일치 시 거부</td><td>P1</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-008">E2E-008</a></td><td>세션 쿠키 속성 확인</td><td>P1</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-009">E2E-009</a></td><td>변조된 세션 쿠키는 비로그인으로 처리</td><td>P1</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-010">E2E-010</a></td><td>만료된 세션(7일 초과)은 비로그인으로 처리</td><td>P2</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-011">E2E-011</a></td><td>작성 중 세션이 만료되면 저장 시 로그인 화면으로 이동</td><td>P1</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-012">E2E-012</a></td><td>사용자 메뉴에서 로그아웃</td><td>P0</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-013">E2E-013</a></td><td>비로그인 상태에서 /auth/logout 호출</td><td>P2</td><td><span class="badge sm pass">통과</span></td></tr><tr><td><a href="#E2E-014">E2E-014</a></td><td>로그인 여부에 따른 헤더 아바타/메뉴 표시</td><td>P1</td><td><span class="badge sm pass">통과</span></td></tr></tbody></table>
+</section>
+
+<section class="block" id="issues-sec" aria-labelledby="issues">
+  <h2 id="issues">발견한 문제와 후속 조치</h2>
+
+  <div class="finding">
+    <h3><span class="sev hi">높음</span>신규 사용자는 첫 로그인에서 500 이 나서 가입할 수 없다 (E2E-004, 005)</h3>
+    <p><code>auth.controller.ts</code> 의 <code>findOrCreateUser</code> 가 신규 이메일일 때 실행하는 INSERT 에서 <code>$1</code> 을 두 곳에 쓴다. 하나는 <code>auth.users.id</code>(uuid 컬럼)에 들어가는 값이고, 다른 하나는 <code>left($1::text, 6)</code> 의 text 캐스트다. PostgreSQL 이 같은 파라미터를 uuid 와 text 로 동시에 추론하려다 <code>inconsistent types deduced for parameter $1</code> (42P08)로 실패한다. username 충돌 여부와 무관하게 신규 가입은 모두 막힌다.</p>
+    <p>영향: 지금 DB 에 있는 7명만 로그인할 수 있고 새 팀원은 로그인할 수 없다. 배포용 <code>deploy/docker-compose.yml</code> 도 같은 <code>postgres:18-alpine</code> 이라 운영에서도 같을 가능성이 높다(운영 서버는 직접 확인하지 않았다).</p>
+    <div class="fix"><p><b>수정안.</b> 캐스트를 <code>left($1::uuid::text, 6)</code> 로 바꿔 파라미터 타입을 uuid 로 통일한다. 이 형태가 파싱되는 것은 PREPARE 로 확인했고(행 삽입 없음), 접미사 분기는 트랜잭션 ROLLBACK 으로 확인했다. 저장소 코드는 수정하지 않았다.</p></div>
+    <p>후속: 수정 후 E2E-004, 005 를 다시 수행한다. 모킹 방식은 아래 '실행 환경'의 서버 쪽 모킹을 그대로 쓰면 된다.</p>
+  </div>
+
+  <div class="finding">
+    <h3><span class="sev mid">중간</span>자동 테스트가 신규 가입과 대부분의 거부 경로를 보지 않는다</h3>
+    <p><code>test/auth.e2e-spec.ts</code> 는 기존 계정 로그인과 aud 불일치만 다룬다. 신규 사용자 생성, username 충돌 접미사, iss 불일치, <code>email_verified=false</code>, 토큰 교환 4xx, 쿠키 Secure 속성은 테스트가 없다. 이번 500 이 그동안 잡히지 않은 이유다. 신규 가입과 username 충돌 케이스부터 추가하는 것을 권한다. 테스트가 로컬 DB 에 쓰므로 정리 단계도 같이 넣어야 한다.</p>
+  </div>
+
+  <div class="finding">
+    <h3><span class="sev">낮음</span>로그인 실패 시 사용자에게 API 의 JSON 에러가 그대로 보인다</h3>
+    <p>콜백이 401·500 으로 끝나면 브라우저가 <code>{"statusCode":500,"message":"Internal server error"}</code> 만 있는 API 주소 화면에 머문다(E2E-004, 005 스크린샷). 프론트로 돌려보내 '로그인에 실패했어요. 다시 시도하세요' 같은 안내를 보이는 편이 낫다. 시나리오 기대에는 없는 동작이라 실패로 치지 않았다.</p>
+  </div>
+
+  <div class="finding">
+    <h3><span class="sev">낮음</span>Google 로그인 화면의 앱 이름이 'supabase_login' 이다</h3>
+    <p>계정 선택 화면에 <code>supabase_login(으)로 이동</code> 이 표시된다(E2E-002 스크린샷). 이전 Supabase 인증용 OAuth 클라이언트를 그대로 쓰는 것으로 보인다. 팀원에게 보이는 이름이므로 OAuth 동의 화면의 앱 이름을 블로그에 맞게 바꾸는 것을 권한다.</p>
+  </div>
+
+  <div class="finding">
+    <h3><span class="sev">참고</span>시나리오 문서와 환경 차이</h3>
+    <p>E2E-011, 012, 014 의 사용자 역할은 '저자(author)'지만 로컬 DB 에는 author 계정이 없다(admin 1명, user 6명). 관리자 계정으로 수행했고, 쓰기 권한 경로는 admin 과 author 가 같다. author 전용 확인은 author 계정을 만든 뒤 다시 해야 한다. E2E-002 의 '302 로 /o/oauth2/v2/auth' 는 curl 에서는 그대로지만 브라우저에서는 Google 이 다시 chooser 로 보내므로 최종 주소가 다르다. 시나리오 문서에 그렇게 적어 두면 헷갈리지 않는다.</p>
+  </div>
+
+  <div class="finding">
+    <h3><span class="sev">참고</span>범위 밖 관찰: 홈 대표 글 커버 이미지가 깨진다</h3>
+    <p>홈 첫 화면의 대표 글 커버(<code>nextjs</code>)가 깨진 이미지로 보인다(E2E-001 스크린샷). 이 글의 <code>cover_image</code> 가 Supabase 스토리지 주소인데 이 환경에서 호스트 이름 해석이 되지 않는다(curl 코드 000). 인증과 무관하며 원인은 확인하지 않았다.</p>
+  </div>
+</section>
+
+<section class="block" aria-labelledby="envh">
+  <h2 id="envh">실행 환경</h2>
+  <dl class="env">
+    <dt>수행일</dt><dd>2026-11-06</dd>
+    <dt>커밋</dt><dd><code>cd77c51</code> (main) · chore: 배포 워크플로 action 을 Node 24 버전으로 업그레이드</dd>
+    <dt>API</dt><dd><code>pnpm start:dev</code> · <code>http://localhost:4000</code> · NODE_ENV 미설정(쿠키 Secure 없음)</dd>
+    <dt>프론트</dt><dd><code>pnpm dev</code> · <code>http://localhost:3000</code></dd>
+    <dt>DB</dt><dd>기존 Docker 컨테이너 <code>pg</code>(postgres:18-alpine). Docker 데몬만 켰고 컨테이너는 이미 실행 중이었다. 스키마 재적용이나 새 DB 생성은 하지 않았다.</dd>
+    <dt>도구</dt><dd>브라우저는 ego-browser, 헤더·상태 코드는 curl. macOS 27.2, Node v26.8.1, pnpm 12.16.1</dd>
+    <dt>비밀값</dt><dd>.env 값, 쿠키 값, 토큰은 출력하거나 이 보고서에 넣지 않았다. client_id 와 이메일은 마스킹했다.</dd>
+  </dl>
+
+  <div class="method">
+    <div><h3>실제 Google 로그인</h3><p>사용자 브라우저에서 Google 계정 선택 화면까지 가서 계정만 골랐다. 비밀번호나 2단계 인증은 요구되지 않았다.</p><p class="ids">E2E-002, 003, 011(재로그인)</p></div>
+    <div><h3>서버 쪽 모킹</h3><p>저장소 코드는 그대로 두고 별도 API 인스턴스(:4001 개발, :4002 production)를 <code>node --import</code> 로 띄워 Google 토큰 엔드포인트 fetch 만 교체했다. 끝난 뒤 종료했다.</p><p class="ids">E2E-004, 005, 007, 008(production)</p></div>
+    <div><h3>테스트 세션 토큰</h3><p>로컬 JWT_SECRET 으로 서명한 세션 토큰을 쿠키로 주입했다. 변조·만료 토큰은 이 토큰을 고쳐 만들었다.</p><p class="ids">E2E-009, 010, 004(대체 확인), 014</p></div>
+  </div>
+</section>
+
+<section class="block" aria-labelledby="clean">
+  <h2 id="clean">수행 중 한 일과 남은 것</h2>
+  <div class="finding">
+    <p><b>DB.</b> 신규 가입이 500 으로 막혀 데이터를 만들지 못했다. 시작과 끝의 건수가 같다(auth.users 7, posts 53, tags 9). 수동 SQL 은 PREPARE 와 ROLLBACK 만 썼다.</p>
+    <p><b>조회수.</b> <code>pnpm test:e2e -- --testPathPatterns=auth</code> 로 auth 스펙만 돌리려 했으나 vitest 가 이 필터를 무시해 4개 스펙(auth, posts, write, swagger) 전체가 실행됐다(13건 통과). posts 스펙은 가장 최근 글 <code>geo</code> 의 조회수를 1 올린다. 이 사실은 tech-blog-neo-api/AGENTS.md 에도 적혀 있는 동작이다. write 스펙은 자체 정리한다. 이후 <code>vitest run --config ./vitest.config.e2e.ts test/auth.e2e-spec.ts</code> 로 auth 스펙만 다시 돌렸다(2건 통과). 시작 전 조회수를 기록하지 않아 값을 되돌리지는 않았다. 글 상세 화면 방문도 조회수를 올릴 수 있다. 현재 geo 는 33.</p>
+    <p><b>브라우저.</b> 사용자 브라우저에 localhost 용 session 쿠키(관리자 로그인)가 있었다. 이 쿠키만 따로 백업하고 시나리오마다 지웠다 만들었다가, 끝나고 원래 값과 만료 시각 그대로 복원했다(복원 후 헤더에 관리자 아바타 확인). 다른 쿠키는 건드리지 않았다.</p>
+    <p><b>프로세스.</b> 모킹용 :4001, :4002 인스턴스는 종료했다. API(:4000), 프론트(:3000) 개발 서버는 보고서 확인이 끝난 뒤 종료한다.</p>
+  </div>
+</section>
+
+<section class="block" aria-labelledby="cards">
+  <h2 id="cards">시나리오별 상세</h2>
+  <p class="sub">각 카드는 왼쪽에 시나리오 원문, 오른쪽에 실제 결과를 놓았다. 스크린샷을 누르면 원본 크기로 열린다.</p>
+  
+<article class="card pass" id="E2E-001">
+  <header>
+    <div class="hd-l"><span class="id">E2E-001</span><h3>비로그인 상태에서 글쓰기 진입 시 로그인 게이트 노출</h3></div>
+    <div class="hd-r"><span class="meta">P0 · 정상 · 비로그인</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>세션 쿠키 없음. (이 브라우저에는 기존 localhost 세션 쿠키가 있어 session 쿠키만 삭제하고 시작. 종료 시 원본 복원)</p>
+      <h4>테스트 단계</h4><ol><li>홈(<code>/</code>)에서 헤더 '글쓰기' 버튼 클릭</li><li><code>/write</code> 화면 확인</li></ol>
+      <h4>기대 결과</h4><p>'로그인이 필요해요' 안내와 흰색 'Google로 로그인' 버튼이 보이고 에디터는 열리지 않는다. 버튼 링크는 <code>${NEXT_PUBLIC_API_URL}/auth/google</code>.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>홈 헤더에 아바타가 없고 '글쓰기' 버튼은 보였다. 클릭하면 <code>/write</code> 로 이동해 <code>h1</code> '로그인이 필요해요'와 흰 배경(<code>rgb(255,255,255)</code>) 'Google로 로그인' 버튼이 나왔다.</p><p>버튼 <code>href</code> 는 <code>http://localhost:4000/auth/google</code> (NEXT_PUBLIC_API_URL 기본값 기준). 페이지에 <code>textarea</code>·<code>contenteditable</code> 요소는 없었다.</p>
+    </div>
+  </div>
+  <div class="shots n2"><figure><a href="screenshots/E2E-001-01-home-anonymous.png" target="_blank" rel="noopener"><img src="screenshots/E2E-001-01-home-anonymous.png" alt="비로그인 홈. 헤더 우측에 아바타 없이 &#x27;글쓰기&#x27;만 있다." loading="lazy"></a><figcaption>비로그인 홈. 헤더 우측에 아바타 없이 '글쓰기'만 있다.</figcaption></figure><figure><a href="screenshots/E2E-001-02-login-gate.png" target="_blank" rel="noopener"><img src="screenshots/E2E-001-02-login-gate.png" alt="&#x27;글쓰기&#x27; 클릭 후 /write 로그인 게이트." loading="lazy"></a><figcaption>'글쓰기' 클릭 후 /write 로그인 게이트.</figcaption></figure></div>
+</article>
+<article class="card pass" id="E2E-002">
+  <header>
+    <div class="hd-l"><span class="id">E2E-002</span><h3>로그인 시작 시 Google 로 리다이렉트되고 state 쿠키 발급</h3></div>
+    <div class="hd-r"><span class="meta">P0 · 정상 · 비로그인</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>GOOGLE_CLIENT_ID / GOOGLE_REDIRECT_URI 설정됨 (.env, 값은 보고서에서 마스킹)</p>
+      <h4>테스트 단계</h4><ol><li><code>/write</code> 에서 'Google로 로그인' 클릭 (및 <code>GET /auth/google</code> 직접 호출)</li><li>응답 헤더 확인</li></ol>
+      <h4>기대 결과</h4><p>302 로 accounts.google.com/o/oauth2/v2/auth 이동. location 에 client_id, redirect_uri, scope=openid email profile, prompt=select_account, state 가 있고 oauth_state 쿠키(HttpOnly, SameSite=Lax, 600초)가 내려온다.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>curl: <code>302 Found</code>, Location 쿼리에 <code>client_id</code>(마스킹), <code>redirect_uri=http://localhost:4000/auth/google/callback</code>, <code>response_type=code</code>, <code>scope=openid+email+profile</code>, <code>state</code>, <code>prompt=select_account</code>. <code>oauth_state</code> 는 <code>Max-Age=600; HttpOnly; SameSite=Lax; Path=/</code>.</p><p>브라우저: 버튼 클릭 후 Google 계정 선택 화면에 도착. 브라우저가 가진 <code>oauth_state</code> 쿠키는 HttpOnly, SameSite=Lax, Path=/, 남은 수명 596초, 값 길이 32자(hex 16바이트). 개발 환경이라 Secure 없음.</p><p>참고: 브라우저에서는 Google 이 <code>/o/oauth2/v2/auth</code> 를 다시 <code>/v3/signin/accountchooser</code> 로 넘기므로 최종 주소는 문서 표기와 다르다. 302 헤더 자체는 기대와 일치한다.</p>
+    </div>
+  </div>
+  <div class="shots n1"><figure><a href="screenshots/E2E-002-01-google-account-chooser.png" target="_blank" rel="noopener"><img src="screenshots/E2E-002-01-google-account-chooser.png" alt="Google 계정 선택 화면. 이름·이메일은 캡처 전에 가렸다. 로그인 앱 이름이 &#x27;supabase_login&#x27; 으로 표시된다(발견 사항 4)." loading="lazy"></a><figcaption>Google 계정 선택 화면. 이름·이메일은 캡처 전에 가렸다. 로그인 앱 이름이 'supabase_login' 으로 표시된다(발견 사항 4).</figcaption></figure></div><details class="ev"><summary>curl 로 로그인 시작 확인 (client_id·state 마스킹)</summary><pre>$ curl -si http://localhost:4000/auth/google
+HTTP/1.1 302 Found
+Set-Cookie: oauth_state=&lt;masked&gt;; Max-Age=600; Path=/; Expires=Fri, 06 Nov 2026 09:01:43 GMT; HttpOnly; SameSite=Lax
+Location: https://accounts.google.com/o/oauth2/v2/auth?client_id=&lt;masked&gt;&amp;redirect_uri=http%3A%2F%2Flocalhost%3A4000%2Fauth%2Fgoogle%2Fcallback&amp;response_type=code&amp;scope=openid+email+profile&amp;state=&lt;masked&gt;&amp;prompt=select_account</pre></details>
+</article>
+<article class="card pass" id="E2E-003">
+  <header>
+    <div class="hd-l"><span class="id">E2E-003</span><h3>기존 계정(관리자) 이메일로 로그인 완료</h3></div>
+    <div class="hd-r"><span class="meta">P0 · 정상 · 관리자</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>auth.users 에 해당 이메일이 이미 있고 profiles.role=admin. 실제 Google 로그인으로 수행(테스트 더블 미사용).</p>
+      <h4>테스트 단계</h4><ol><li><code>/write</code> 에서 Google 로그인 시작</li><li>Google 계정 선택 후 동의</li><li>콜백 완료 후 도착 화면 확인</li><li>헤더 확인</li></ol>
+      <h4>기대 결과</h4><p>FRONT_URL(홈)로 리다이렉트되고 session 쿠키(HttpOnly)가 설정된다. 새 사용자가 생성되지 않고 기존 계정으로 매칭되며 헤더 우측에 아바타가 나타난다. /write 로 자동 복귀하지는 않는다.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>계정 선택 화면에서 관리자 계정(yoo32767)만 골랐다. 동의 화면 없이 바로 콜백이 끝났고 <code>http://localhost:3000/</code>(홈)에 도착했다. <code>/write</code> 로 되돌아가지 않았다.</p><p>session 쿠키: HttpOnly, SameSite=Lax, Path=/, 남은 수명 6.9999일. <code>document.cookie</code> 에는 보이지 않는다. 로그인 전후 <code>auth.users</code> 행 수는 7로 같았다(신규 생성 없음).</p><p>헤더 우측에 아바타 'y'(툴팁 yoo32767)가 나타났다. 이후 <code>/write</code> 는 에디터가 열렸다.</p>
+    </div>
+  </div>
+  <div class="shots n2"><figure><a href="screenshots/E2E-003-01-home-after-login.png" target="_blank" rel="noopener"><img src="screenshots/E2E-003-01-home-after-login.png" alt="로그인 직후 홈. 헤더 우측 아바타 &#x27;y&#x27;." loading="lazy"></a><figcaption>로그인 직후 홈. 헤더 우측 아바타 'y'.</figcaption></figure><figure><a href="screenshots/E2E-003-02-write-editor-admin.png" target="_blank" rel="noopener"><img src="screenshots/E2E-003-02-write-editor-admin.png" alt="로그인 후 /write. 관리자라 에디터가 열린다." loading="lazy"></a><figcaption>로그인 후 /write. 관리자라 에디터가 열린다.</figcaption></figure></div>
+</article>
+<article class="card fail" id="E2E-004">
+  <header>
+    <div class="hd-l"><span class="id">E2E-004</span><h3>신규 사용자 최초 로그인 시 계정·프로필 자동 생성 (기본 역할 user)</h3></div>
+    <div class="hd-r"><span class="meta">P0 · 정상 · 독자(user)</span><span class="badge fail">실패</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>DB 에 없는 이메일의 Google 계정. 실제 계정을 쓸 수 없어 별도 API 인스턴스(:4001)에서 Google 토큰 엔드포인트만 모킹하고 이메일 <code>e2e-new-user@example.test</code> 로 수행.</p>
+      <h4>테스트 단계</h4><ol><li>Google 로그인 완료</li><li>헤더 아바타(이니셜 또는 Google 사진) 확인</li><li><code>/write</code> 접근</li><li><code>/authors/&lt;username&gt;</code> 접근</li></ol>
+      <h4>기대 결과</h4><p>auth.users 와 profiles 가 만들어지고 username 은 이메일 앞부분, displayName 은 Google name. 기본 role=user 이므로 /write 에서 '글쓰기 권한이 없어요'. 프로필 페이지는 열리나 글은 0편.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p><b>콜백이 500 으로 실패해 로그인 자체가 되지 않았다.</b> 응답은 <code>{"statusCode":500,"message":"Internal server error"}</code>. session 쿠키는 발급되지 않았고 DB 에는 사용자가 생기지 않았다(auth.users 7명 그대로).</p><p>서버 로그: <code>error: inconsistent types deduced for parameter $1</code> (<code>code 42P08</code>, <code>detail: text versus uuid</code>). 원인은 발견 사항 1.</p><p>단계 2~4 는 가입이 안 되어 신규 계정으로 확인 불가. 대신 기존 role=user 계정(keyy1315, 테스트 세션 토큰)으로 하위 화면만 확인했다: 이니셜 아바타 'k', <code>/write</code> '글쓰기 권한이 없어요', 프로필 '발행한 글 0편'. 이것은 가입 로직의 증거가 아니라 role=user 화면 동작의 대체 확인이다.</p>
+    </div>
+  </div>
+  <div class="shots n4"><figure><a href="screenshots/E2E-004-01-signup-callback-500.png" target="_blank" rel="noopener"><img src="screenshots/E2E-004-01-signup-callback-500.png" alt="신규 이메일로 콜백 호출 결과. API 도메인에 JSON 500 이 그대로 노출된다." loading="lazy"></a><figcaption>신규 이메일로 콜백 호출 결과. API 도메인에 JSON 500 이 그대로 노출된다.</figcaption></figure><figure><a href="screenshots/E2E-004-02-substitute-existing-user-home.png" target="_blank" rel="noopener"><img src="screenshots/E2E-004-02-substitute-existing-user-home.png" alt="[대체 확인] 기존 role=user 계정의 홈. 이니셜 아바타 &#x27;k&#x27;." loading="lazy"></a><figcaption>[대체 확인] 기존 role=user 계정의 홈. 이니셜 아바타 'k'.</figcaption></figure><figure><a href="screenshots/E2E-004-03-substitute-write-forbidden.png" target="_blank" rel="noopener"><img src="screenshots/E2E-004-03-substitute-write-forbidden.png" alt="[대체 확인] role=user 의 /write. &#x27;글쓰기 권한이 없어요&#x27;." loading="lazy"></a><figcaption>[대체 확인] role=user 의 /write. '글쓰기 권한이 없어요'.</figcaption></figure><figure><a href="screenshots/E2E-004-04-substitute-author-profile.png" target="_blank" rel="noopener"><img src="screenshots/E2E-004-04-substitute-author-profile.png" alt="[대체 확인] role=user 의 프로필. 글 0편." loading="lazy"></a><figcaption>[대체 확인] role=user 의 프로필. 글 0편.</figcaption></figure></div><details class="ev" open><summary>콜백 호출 결과 (curl, 유효 state)</summary><pre>$ [유효 state] GET :4001/auth/google/callback?code=newuser (모킹: 신규 이메일 e2e-new-user@example.test)
+HTTP/1.1 500 Internal Server Error
+{&quot;statusCode&quot;:500,&quot;message&quot;:&quot;Internal server error&quot;}
+
+$ [유효 state] GET :4001/auth/google/callback?code=dupname (모킹: yoo32767@example.test -&gt; username 충돌 케이스)
+HTTP/1.1 500 Internal Server Error
+{&quot;statusCode&quot;:500,&quot;message&quot;:&quot;Internal server error&quot;}</pre></details><details class="ev" open><summary>원인 재현: 앱 INSERT 와 같은 형태를 PREPARE 로 파싱만 확인 (행 삽입 없음)</summary><pre>$ psql -c &quot;prepare t2 as insert into auth.users (id, email, raw_user_meta_data)
+             values ($1, $2, jsonb_build_object(&#x27;username&#x27;, left($1::text, 6)))&quot;
+ERROR:  inconsistent types deduced for parameter $1
+DETAIL:  text versus uuid
+
+# 수정안: $1 을 uuid 로 통일
+$ psql -c &quot;prepare t3 as insert into auth.users (id, email, raw_user_meta_data)
+             values ($1, $2, jsonb_build_object(&#x27;username&#x27;, left($1::uuid::text, 6)))&quot;
+PREPARE</pre></details>
+</article>
+<article class="card fail" id="E2E-005">
+  <header>
+    <div class="hd-l"><span class="id">E2E-005</span><h3>이메일 앞부분 username 이 이미 있을 때 접미사 부여</h3></div>
+    <div class="hd-r"><span class="meta">P2 · 경계 · 독자(user)</span><span class="badge fail">실패</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>다른 계정이 이미 같은 username 을 쓰고 있고 새 사용자 이메일 앞부분도 같음. 기존 <code>yoo32767</code> 와 겹치도록 모킹 이메일 <code>yoo32767@example.test</code> 사용.</p>
+      <h4>테스트 단계</h4><ol><li>신규 사용자로 로그인</li><li><code>/auth/me</code> 응답 또는 프로필 URL 확인</li></ol>
+      <h4>기대 결과</h4><p>username 이 <code>kim-&lt;id 앞 6자리&gt;</code> 형태로 생성되어 unique 충돌 없이 가입된다.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>E2E-004 와 같은 원인으로 <b>500</b>. 접미사 분기에 도달하기 전에 INSERT 문의 파라미터 타입 추론 단계에서 실패하므로 충돌 여부와 무관하게 가입이 안 된다.</p><p>접미사 로직 자체는 별도로 확인했다. 트랜잭션 안에서 <code>auth.users</code> 에 직접 INSERT 해 보니 프로필 username 이 <code>yoo32767-111111</code> 로 만들어졌고 ROLLBACK 했다(데이터 없음). 쿼리의 접미사 분기는 정상이고, 타입 추론 오류만 문제다.</p>
+    </div>
+  </div>
+  <div class="shots n1"><figure><a href="screenshots/E2E-005-01-duplicate-username-callback-500.png" target="_blank" rel="noopener"><img src="screenshots/E2E-005-01-duplicate-username-callback-500.png" alt="username 충돌 케이스 콜백. 역시 500." loading="lazy"></a><figcaption>username 충돌 케이스 콜백. 역시 500.</figcaption></figure></div><details class="ev" open><summary>트랜잭션 안에서 접미사 분기만 확인 후 ROLLBACK</summary><pre>BEGIN;
+INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES (&#x27;11111111-…&#x27;::uuid, &#x27;yoo32767@example.test&#x27;,
+  jsonb_build_object(&#x27;username&#x27;, CASE WHEN EXISTS (SELECT 1 FROM profiles WHERE username=&#x27;yoo32767&#x27;)
+     THEN &#x27;yoo32767&#x27; || &#x27;-&#x27; || left(&#x27;11111111-…&#x27;::uuid::text, 6) ELSE &#x27;yoo32767&#x27; END, ...));
+SELECT username FROM profiles WHERE id = &#x27;11111111-…&#x27;;
+    username
+-----------------
+ yoo32767-111111
+ROLLBACK;</pre></details>
+</article>
+<article class="card pass" id="E2E-006">
+  <header>
+    <div class="hd-l"><span class="id">E2E-006</span><h3>OAuth state 불일치 또는 쿠키 없음이면 로그인 거부</h3></div>
+    <div class="hd-r"><span class="meta">P1 · 예외 · 비로그인</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>oauth_state 쿠키가 없거나 state 쿼리와 다름</p>
+      <h4>테스트 단계</h4><ol><li><code>GET /auth/google/callback?code=c&amp;state=bad</code> 를 쿠키 없이 호출</li><li>state 쿠키는 있으나 값이 다른 경우로 반복</li></ol>
+      <h4>기대 결과</h4><p>401 'invalid oauth state' 이고 session 쿠키가 발급되지 않는다. code 또는 state 누락 시에도 동일.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>다섯 경우(쿠키 없음, 쿠키 값 불일치, code 누락, state 누락, 파라미터 없음) 모두 <code>401 invalid oauth state</code>. 응답에 session <code>Set-Cookie</code> 는 없었고 <code>oauth_state</code> 만 만료 처리됐다.</p>
+    </div>
+  </div>
+  <details class="ev"><summary>curl 5건</summary><pre>$ curl -si &quot;http://localhost:4000/auth/google/callback?code=c&amp;state=bad&quot;   (쿠키 없음)
+HTTP/1.1 401 Unauthorized
+Set-Cookie: oauth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+{&quot;message&quot;:&quot;invalid oauth state&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si -b &quot;oauth_state=aaaa&quot; &quot;http://localhost:4000/auth/google/callback?code=c&amp;state=bad&quot;   (쿠키 있으나 값 다름)
+HTTP/1.1 401 Unauthorized
+Set-Cookie: oauth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+{&quot;message&quot;:&quot;invalid oauth state&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si -b &quot;oauth_state=bad&quot; &quot;http://localhost:4000/auth/google/callback?state=bad&quot;   (code 누락)
+HTTP/1.1 401 Unauthorized
+Set-Cookie: oauth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+{&quot;message&quot;:&quot;invalid oauth state&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si -b &quot;oauth_state=bad&quot; &quot;http://localhost:4000/auth/google/callback?code=c&quot;   (state 누락)
+HTTP/1.1 401 Unauthorized
+Set-Cookie: oauth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+{&quot;message&quot;:&quot;invalid oauth state&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si &quot;http://localhost:4000/auth/google/callback&quot;   (파라미터 없음)
+HTTP/1.1 401 Unauthorized
+Set-Cookie: oauth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+{&quot;message&quot;:&quot;invalid oauth state&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}</pre></details>
+</article>
+<article class="card pass" id="E2E-007">
+  <header>
+    <div class="hd-l"><span class="id">E2E-007</span><h3>Google 토큰 교환 실패 또는 id_token 클레임 불일치 시 거부</h3></div>
+    <div class="hd-r"><span class="meta">P1 · 예외 · 비로그인</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>Google 토큰 엔드포인트를 서버 쪽에서 모킹. 저장소 코드는 건드리지 않고, 별도 API 인스턴스(:4001)를 <code>node --import</code> 로 띄워 <code>globalThis.fetch</code> 를 교체했다. 로컬 DB 를 쓰지만 이 시나리오는 쓰기가 없다.</p>
+      <h4>테스트 단계</h4><ol><li>유효한 state 로 콜백 호출</li><li>경우 1: 토큰 엔드포인트가 4xx 응답</li><li>경우 2: aud 가 다른 id_token</li><li>경우 3: iss 가 accounts.google.com 이 아님</li><li>경우 4: email_verified=false</li></ol>
+      <h4>기대 결과</h4><p>모든 경우 401 (google token exchange failed / invalid google id token) 이고 session 쿠키가 발급되지 않는다.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>4경우 모두 401. 토큰 교환 4xx 는 <code>google token exchange failed</code>, 나머지 3경우는 <code>invalid google id token</code>. session <code>Set-Cookie</code> 없음. 같은 방식의 정상 id_token(대조군)은 302 와 session 쿠키가 나왔다.</p><p>기존 <code>test/auth.e2e-spec.ts</code> 는 auth 스펙만 따로 실행해 2건 통과했지만, 이 스펙이 다루는 것은 aud 불일치뿐이다. 나머지 3경우는 위 모킹으로만 확인됐다(발견 사항 2).</p>
+    </div>
+  </div>
+  <details class="ev"><summary>모킹 인스턴스 대상 curl (session 쿠키 없음 확인)</summary><pre># 서버측 모킹: PORT=4001 로 별도 API 인스턴스를 띄우고 --import 로 globalThis.fetch(Google 토큰 엔드포인트)를 교체. code 값으로 응답을 선택
+
+$ [state 정상] GET /auth/google/callback?code=tok4xx&amp;state=&lt;유효&gt;   (모킹 케이스: tok4xx)
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;google token exchange failed&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ [state 정상] GET /auth/google/callback?code=badaud&amp;state=&lt;유효&gt;   (모킹 케이스: badaud)
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;invalid google id token&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ [state 정상] GET /auth/google/callback?code=badiss&amp;state=&lt;유효&gt;   (모킹 케이스: badiss)
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;invalid google id token&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ [state 정상] GET /auth/google/callback?code=unverified&amp;state=&lt;유효&gt;   (모킹 케이스: unverified)
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;invalid google id token&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+# 대조군: 정상 id_token (code=admin)
+HTTP/1.1 302 Found
+Set-Cookie: session=&lt;masked&gt;; Max-Age=604800; Path=/; Expires=Fri, 13 Nov 2026 08:57:43 GMT; HttpOnly; SameSite=Lax
+Location: http://localhost:3000</pre></details><details class="ev"><summary>auth 스펙만 실행 (vitest, 파일 경로 지정)</summary><pre> RUN  v4.1.12 /Users/devgrr/dev/interplug/tech-blog-neo/tech-blog-neo-api
+ ✓ test/auth.e2e-spec.ts &gt; Auth (e2e) &gt; 세션 토큰 서명/검증 1ms
+ ✓ test/auth.e2e-spec.ts &gt; Auth (e2e) &gt; 로그인 흐름: state 검증 → 기존 사용자 세션 발급 → /auth/me → logout 51ms
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  17:59:42
+   Duration  1.25s (transform 55ms, setup 0ms, import 369ms, tests 787ms, environment 0ms)</pre></details>
+</article>
+<article class="card pass" id="E2E-008">
+  <header>
+    <div class="hd-l"><span class="id">E2E-008</span><h3>세션 쿠키 속성 확인</h3></div>
+    <div class="hd-r"><span class="meta">P1 · 경계 · 관리자</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>로그인 완료. 개발은 실제 Google 로그인 쿠키, 운영(production) 속성은 <code>NODE_ENV=production</code> 으로 띄운 별도 인스턴스(:4002)에서 확인. 실제 운영 서버는 아니다.</p>
+      <h4>테스트 단계</h4><ol><li>세션 쿠키 속성 확인 (개발: NODE_ENV!=production, 운영: production)</li></ol>
+      <h4>기대 결과</h4><p>HttpOnly, SameSite=Lax, Path=/, Max-Age 7일. 운영에서는 Secure 가 붙는다.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>개발: <code>Max-Age=604800; Path=/; HttpOnly; SameSite=Lax</code>, Secure 없음. 브라우저에서 잰 남은 수명 6.9999일.</p><p>운영(NODE_ENV=production): 같은 속성에 <code>Secure</code> 추가. <code>oauth_state</code> 쿠키에도 Secure 가 붙는다.</p>
+    </div>
+  </div>
+  <details class="ev"><summary>Set-Cookie 비교 (값 마스킹)</summary><pre># 개발(NODE_ENV 미설정) 인스턴스 :4001 — 로그인 성공 시 Set-Cookie 전체(값 마스킹)
+HTTP/1.1 302 Found
+Set-Cookie: oauth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+Set-Cookie: session=&lt;masked&gt;; Max-Age=604800; Path=/; Expires=Fri, 13 Nov 2026 08:57:43 GMT; HttpOnly; SameSite=Lax
+Location: http://localhost:3000
+
+# 운영(NODE_ENV=production) 인스턴스 :4002
+Set-Cookie: oauth_state=&lt;masked&gt;; Max-Age=600; Path=/; Expires=Fri, 06 Nov 2026 09:07:43 GMT; HttpOnly; Secure; SameSite=Lax
+HTTP/1.1 302 Found
+Set-Cookie: oauth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+Set-Cookie: session=&lt;masked&gt;; Max-Age=604800; Path=/; Expires=Fri, 13 Nov 2026 08:57:43 GMT; HttpOnly; Secure; SameSite=Lax
+Location: http://localhost:3000</pre></details>
+</article>
+<article class="card pass" id="E2E-009">
+  <header>
+    <div class="hd-l"><span class="id">E2E-009</span><h3>변조된 세션 쿠키는 비로그인으로 처리</h3></div>
+    <div class="hd-r"><span class="meta">P1 · 예외 · 비로그인</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>session 쿠키를 서명 일부를 바꾼 값으로 설정(로컬 JWT_SECRET 으로 만든 정상 토큰의 끝 3글자를 변경). curl 은 임의 문자열도 시험.</p>
+      <h4>테스트 단계</h4><ol><li>홈(<code>/</code>) 접속</li><li><code>/write</code> 접속</li><li>글 상세에서 '좋아요' 클릭</li></ol>
+      <h4>기대 결과</h4><p>홈은 200 정상 표시에 아바타 없음. /write 는 로그인 게이트. 좋아요는 401 후 로그인 화면 이동. 깨진 쿠키 때문에 500 이 나지 않는다.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>홈은 정상 표시, 헤더 아바타 없음. <code>/write</code> 는 로그인 게이트. 글 상세에서 '좋아요'를 누르면 Google 로그인 화면으로 이동했다. 500 은 없었다.</p><p>401 자체는 브라우저에서 직접 캡처하지 못했고(이동 후 페이지가 바뀜) curl 로 확인: <code>POST /posts/geo/like</code> 에 잘못된 쿠키를 주면 <code>401</code>. 변조·임의 문자열·만료 쿠키로 <code>GET /posts</code> 는 모두 200.</p>
+    </div>
+  </div>
+  <div class="shots n4"><figure><a href="screenshots/E2E-009-01-home-tampered-cookie.png" target="_blank" rel="noopener"><img src="screenshots/E2E-009-01-home-tampered-cookie.png" alt="변조 쿠키로 홈 접속. 정상 표시, 아바타 없음." loading="lazy"></a><figcaption>변조 쿠키로 홈 접속. 정상 표시, 아바타 없음.</figcaption></figure><figure><a href="screenshots/E2E-009-02-write-gate-tampered-cookie.png" target="_blank" rel="noopener"><img src="screenshots/E2E-009-02-write-gate-tampered-cookie.png" alt="변조 쿠키로 /write. 로그인 게이트." loading="lazy"></a><figcaption>변조 쿠키로 /write. 로그인 게이트.</figcaption></figure><figure><a href="screenshots/E2E-009-03-post-detail-tampered-cookie.png" target="_blank" rel="noopener"><img src="screenshots/E2E-009-03-post-detail-tampered-cookie.png" alt="변조 쿠키로 글 상세. 좋아요 클릭 직전." loading="lazy"></a><figcaption>변조 쿠키로 글 상세. 좋아요 클릭 직전.</figcaption></figure><figure><a href="screenshots/E2E-009-04-like-401-to-login.png" target="_blank" rel="noopener"><img src="screenshots/E2E-009-04-like-401-to-login.png" alt="좋아요 클릭 후 Google 로그인 화면으로 이동(이름·이메일 가림)." loading="lazy"></a><figcaption>좋아요 클릭 후 Google 로그인 화면으로 이동(이름·이메일 가림).</figcaption></figure></div><details class="ev"><summary>curl: 변조·임의·만료 쿠키</summary><pre>$ curl -si -b &quot;session=&lt;tampered-token&gt;&quot; http://localhost:4000/auth/me
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si -b &quot;session=&lt;garbage-token&gt;&quot; http://localhost:4000/auth/me
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si -b &quot;session=&lt;expired-token&gt;&quot; http://localhost:4000/auth/me
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si http://localhost:4000/auth/me   (쿠키 없음)
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+# 변조 쿠키로 공개 조회/쓰기
+$ curl -s -o /dev/null -w &#x27;%{http_code}&#x27; -b session=&lt;tampered-token&gt; http://localhost:4000/posts?limit=1  -&gt; 200
+$ curl -s -o /dev/null -w &#x27;%{http_code}&#x27; -b session=&lt;garbage-token&gt; http://localhost:4000/posts?limit=1  -&gt; 200
+$ curl -s -o /dev/null -w &#x27;%{http_code}&#x27; -b session=&lt;expired-token&gt; http://localhost:4000/posts?limit=1  -&gt; 200
+
+$ curl -si -X POST -b &quot;session=garbage&quot; http://localhost:4000/posts/geo/like
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}</pre></details>
+</article>
+<article class="card pass" id="E2E-010">
+  <header>
+    <div class="hd-l"><span class="id">E2E-010</span><h3>만료된 세션(7일 초과)은 비로그인으로 처리</h3></div>
+    <div class="hd-r"><span class="meta">P2 · 경계 · 비로그인</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>exp 가 지난 세션 토큰. 로컬 JWT_SECRET 으로 exp=현재-60초 로 서명한 토큰을 쿠키로 주입.</p>
+      <h4>테스트 단계</h4><ol><li>만료 토큰으로 <code>/auth/me</code> 호출 및 <code>/write</code> 접속</li></ol>
+      <h4>기대 결과</h4><p>/auth/me 는 401, /write 는 로그인 게이트.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>브라우저에서 <code>http://localhost:4000/auth/me</code> 는 <code>{"statusCode":401,"message":"Unauthorized"}</code>, <code>/write</code> 는 로그인 게이트.</p>
+    </div>
+  </div>
+  <div class="shots n2"><figure><a href="screenshots/E2E-010-01-auth-me-401-expired.png" target="_blank" rel="noopener"><img src="screenshots/E2E-010-01-auth-me-401-expired.png" alt="만료 토큰으로 /auth/me. 401." loading="lazy"></a><figcaption>만료 토큰으로 /auth/me. 401.</figcaption></figure><figure><a href="screenshots/E2E-010-02-write-gate-expired.png" target="_blank" rel="noopener"><img src="screenshots/E2E-010-02-write-gate-expired.png" alt="만료 토큰으로 /write. 로그인 게이트." loading="lazy"></a><figcaption>만료 토큰으로 /write. 로그인 게이트.</figcaption></figure></div><details class="ev"><summary>curl: 유효 토큰은 200, 변조·임의·만료·쿠키 없음은 401</summary><pre># 유효 관리자 세션 (로컬 JWT_SECRET 으로 서명한 테스트 토큰)
+$ curl -s -b &quot;session=&lt;admin-token&gt;&quot; http://localhost:4000/auth/me
+{&quot;id&quot;: &quot;2716ea10…&quot;, &quot;email&quot;: &quot;yoo***&quot;, &quot;username&quot;: &quot;yoo32767&quot;, &quot;displayName&quot;: &quot;yoo32767&quot;, &quot;avatarUrl&quot;: null, &quot;bio&quot;: null, &quot;role&quot;: &quot;admin&quot;}
+
+$ curl -si -b &quot;session=&lt;tampered-token&gt;&quot; http://localhost:4000/auth/me
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si -b &quot;session=&lt;garbage-token&gt;&quot; http://localhost:4000/auth/me
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si -b &quot;session=&lt;expired-token&gt;&quot; http://localhost:4000/auth/me
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
+
+$ curl -si http://localhost:4000/auth/me   (쿠키 없음)
+HTTP/1.1 401 Unauthorized
+{&quot;message&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}</pre></details>
+</article>
+<article class="card pass" id="E2E-011">
+  <header>
+    <div class="hd-l"><span class="id">E2E-011</span><h3>작성 중 세션이 만료되면 저장 시 로그인 화면으로 이동</h3></div>
+    <div class="hd-r"><span class="meta">P1 · 예외 · 저자(author)</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>에디터에서 글 작성 중 session 쿠키가 삭제/만료. <b>편차:</b> 로컬 DB 에 author 계정이 없어(관리자 1, user 6) 관리자 계정으로 수행. 쓰기 권한 경로는 admin 과 author 가 같다.</p>
+      <h4>테스트 단계</h4><ol><li>제목·slug·태그 입력</li><li>'발행' 클릭</li></ol>
+      <h4>기대 결과</h4><p>쓰기 API 가 401 을 반환하고 브라우저가 window.location 으로 API 의 /auth/google 로 이동한다. 로그인 후 홈으로 돌아오며 작성 중이던 내용은 저장되지 않는다(자동 임시저장 없음).</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>제목, slug(<code>e2e-session-expiry-test</code>), 본문, 태그(Performance)를 입력하고 session 쿠키를 삭제한 뒤 '발행'을 눌렀다. 곧바로 Google 계정 선택 화면으로 이동했다.</p><p>계정을 선택하자 홈으로 돌아왔다. <code>/write</code> 를 다시 열면 제목 입력란이 비어 있었고 DB 의 <code>posts</code> 에 해당 slug 는 0건이었다. 글이 저장되지 않았음을 확인했다.</p>
+    </div>
+  </div>
+  <div class="shots n4"><figure><a href="screenshots/E2E-011-01-editor-filled.png" target="_blank" rel="noopener"><img src="screenshots/E2E-011-01-editor-filled.png" alt="입력을 마친 에디터. &#x27;발행&#x27; 직전." loading="lazy"></a><figcaption>입력을 마친 에디터. '발행' 직전.</figcaption></figure><figure><a href="screenshots/E2E-011-02-redirect-to-google.png" target="_blank" rel="noopener"><img src="screenshots/E2E-011-02-redirect-to-google.png" alt="쿠키 삭제 후 &#x27;발행&#x27; 클릭. Google 로그인 화면으로 이동." loading="lazy"></a><figcaption>쿠키 삭제 후 '발행' 클릭. Google 로그인 화면으로 이동.</figcaption></figure><figure><a href="screenshots/E2E-011-03-home-after-relogin.png" target="_blank" rel="noopener"><img src="screenshots/E2E-011-03-home-after-relogin.png" alt="재로그인 후 홈." loading="lazy"></a><figcaption>재로그인 후 홈.</figcaption></figure><figure><a href="screenshots/E2E-011-04-editor-empty-after-relogin.png" target="_blank" rel="noopener"><img src="screenshots/E2E-011-04-editor-empty-after-relogin.png" alt="/write 재진입. 입력은 사라져 있다." loading="lazy"></a><figcaption>/write 재진입. 입력은 사라져 있다.</figcaption></figure></div>
+</article>
+<article class="card pass" id="E2E-012">
+  <header>
+    <div class="hd-l"><span class="id">E2E-012</span><h3>사용자 메뉴에서 로그아웃</h3></div>
+    <div class="hd-r"><span class="meta">P0 · 정상 · 저자(author)</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>로그인 상태. <b>편차:</b> author 계정이 없어 관리자 계정(실제 Google 로그인)으로 수행.</p>
+      <h4>테스트 단계</h4><ol><li>헤더 아바타 클릭</li><li>'로그아웃' 클릭</li><li>페이지가 새로고침되면 헤더 확인</li><li><code>/write</code> 접속</li></ol>
+      <h4>기대 결과</h4><p>POST /auth/logout 이 204 를 반환하고 session 쿠키가 삭제된다. 새로고침 후 아바타가 사라지고 /write 는 로그인 게이트.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>아바타를 누르면 '로그아웃' 메뉴가 열렸다. 클릭 시 <code>POST http://localhost:4000/auth/logout</code> 이 <code>204</code>(페이지에서 fetch 응답 상태를 기록). 새로고침 후 아바타가 사라졌고 session 쿠키도 없었다. <code>/write</code> 는 로그인 게이트.</p>
+    </div>
+  </div>
+  <div class="shots n4"><figure><a href="screenshots/E2E-012-01-home-logged-in.png" target="_blank" rel="noopener"><img src="screenshots/E2E-012-01-home-logged-in.png" alt="로그인 상태의 홈." loading="lazy"></a><figcaption>로그인 상태의 홈.</figcaption></figure><figure><a href="screenshots/E2E-012-02-user-menu-open.png" target="_blank" rel="noopener"><img src="screenshots/E2E-012-02-user-menu-open.png" alt="아바타 메뉴. 항목은 &#x27;로그아웃&#x27; 하나." loading="lazy"></a><figcaption>아바타 메뉴. 항목은 '로그아웃' 하나.</figcaption></figure><figure><a href="screenshots/E2E-012-03-home-after-logout.png" target="_blank" rel="noopener"><img src="screenshots/E2E-012-03-home-after-logout.png" alt="로그아웃 후 새로고침된 홈. 아바타 없음." loading="lazy"></a><figcaption>로그아웃 후 새로고침된 홈. 아바타 없음.</figcaption></figure><figure><a href="screenshots/E2E-012-04-write-gate-after-logout.png" target="_blank" rel="noopener"><img src="screenshots/E2E-012-04-write-gate-after-logout.png" alt="로그아웃 후 /write. 로그인 게이트." loading="lazy"></a><figcaption>로그아웃 후 /write. 로그인 게이트.</figcaption></figure></div>
+</article>
+<article class="card pass" id="E2E-013">
+  <header>
+    <div class="hd-l"><span class="id">E2E-013</span><h3>비로그인 상태에서 /auth/logout 호출</h3></div>
+    <div class="hd-r"><span class="meta">P2 · 경계 · 비로그인</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>세션 없음</p>
+      <h4>테스트 단계</h4><ol><li><code>POST /auth/logout</code> 호출</li></ol>
+      <h4>기대 결과</h4><p>인증 없이도 204 로 응답한다(오류 없음).</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p><code>204 No Content</code>. 응답은 session 쿠키를 만료시키는 <code>Set-Cookie</code> 만 포함.</p>
+    </div>
+  </div>
+  <details class="ev"><summary>curl</summary><pre>$ curl -si -X POST http://localhost:4000/auth/logout
+HTTP/1.1 204 No Content
+Set-Cookie: session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT</pre></details>
+</article>
+<article class="card pass" id="E2E-014">
+  <header>
+    <div class="hd-l"><span class="id">E2E-014</span><h3>로그인 여부에 따른 헤더 아바타/메뉴 표시</h3></div>
+    <div class="hd-r"><span class="meta">P1 · 정상 · 저자(author)</span><span class="badge pass">통과</span></div>
+  </header>
+  <div class="cols">
+    <div class="spec">
+      <h4>사전 조건</h4><p>로그인 상태와 비로그인 상태 각각. <b>편차:</b> author 계정이 없어 관리자('y'), role=user('k'), 사진 아바타 계정으로 확인.</p>
+      <h4>테스트 단계</h4><ol><li>홈, 글 상세, 태그, 저자 페이지를 차례로 방문</li><li>아바타가 없는 계정은 이니셜 표시 확인</li></ol>
+      <h4>기대 결과</h4><p>로그인하면 모든 페이지 헤더에 아바타(사진 없으면 이름 첫 글자)가 보이고, 비로그인이면 아바타가 없다. '글쓰기' 버튼은 로그인 여부와 관계없이 항상 보인다.</p>
+    </div>
+    <div class="result">
+      <h4>실제 결과</h4><p>로그인(관리자): 홈, 글 상세, 태그, 저자 4페이지 모두 아바타 'y' 와 '글쓰기' 가 보였다. 비로그인: 글 상세, 태그, 저자 모두 아바타 없이 '글쓰기'만 보였다(홈은 E2E-001).</p><p>아바타 사진이 없는 계정은 이니셜(관리자 'y', user 'k')을 표시했다. 사진이 있는 계정은 <code>&lt;img src="https://lh3.googleusercontent.com/…"&gt;</code> 로 표시했다.</p><p>참고: <code>/write</code> 에디터 화면은 별도 상단 바를 써서 이 아바타가 없다. 시나리오 범위(홈·글 상세·태그·저자) 밖이라 판정에는 넣지 않았다.</p>
+    </div>
+  </div>
+  <div class="shots n4"><figure><a href="screenshots/E2E-014-01-login-post-detail.png" target="_blank" rel="noopener"><img src="screenshots/E2E-014-01-login-post-detail.png" alt="로그인: 글 상세" loading="lazy"></a><figcaption>로그인: 글 상세</figcaption></figure><figure><a href="screenshots/E2E-014-02-login-tags.png" target="_blank" rel="noopener"><img src="screenshots/E2E-014-02-login-tags.png" alt="로그인: 태그" loading="lazy"></a><figcaption>로그인: 태그</figcaption></figure><figure><a href="screenshots/E2E-014-03-login-authors.png" target="_blank" rel="noopener"><img src="screenshots/E2E-014-03-login-authors.png" alt="로그인: 저자" loading="lazy"></a><figcaption>로그인: 저자</figcaption></figure><figure><a href="screenshots/E2E-014-04-anon-post-detail.png" target="_blank" rel="noopener"><img src="screenshots/E2E-014-04-anon-post-detail.png" alt="비로그인: 글 상세" loading="lazy"></a><figcaption>비로그인: 글 상세</figcaption></figure><figure><a href="screenshots/E2E-014-05-anon-tags.png" target="_blank" rel="noopener"><img src="screenshots/E2E-014-05-anon-tags.png" alt="비로그인: 태그" loading="lazy"></a><figcaption>비로그인: 태그</figcaption></figure><figure><a href="screenshots/E2E-014-06-anon-authors.png" target="_blank" rel="noopener"><img src="screenshots/E2E-014-06-anon-authors.png" alt="비로그인: 저자" loading="lazy"></a><figcaption>비로그인: 저자</figcaption></figure><figure><a href="screenshots/E2E-014-07-login-photo-avatar-home.png" target="_blank" rel="noopener"><img src="screenshots/E2E-014-07-login-photo-avatar-home.png" alt="로그인(사진 아바타 계정): 홈 헤더. 사진 대신 Google 이 만든 글자 이미지가 사진 자리에 표시된다." loading="lazy"></a><figcaption>로그인(사진 아바타 계정): 홈 헤더. 사진 대신 Google 이 만든 글자 이미지가 사진 자리에 표시된다.</figcaption></figure></div>
+</article>
+</section>
+</main>
+
+<footer class="end"><div class="wrap">스크린샷은 <code>docs/test/e2e/screenshots/</code> 에 있다. Google 화면의 이름·이메일은 캡처 전에 가렸다. <a class="up" href="#sum">맨 위로</a></div></footer>
+</body>
+</html>
