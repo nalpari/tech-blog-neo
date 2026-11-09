@@ -14,21 +14,26 @@ import pg from 'pg';
 export class Db extends pg.Pool implements OnModuleDestroy {
   constructor() {
     super({ connectionString: process.env.DATABASE_URL });
+    // 쉬고 있는 커넥션의 오류(DB 재시작 등)는 풀이 그 커넥션을 버리고 끝난다.
+    // 리스너가 없으면 'error' 이벤트가 처리되지 않은 예외가 되어 프로세스가 죽는다.
+    this.on('error', (e) => console.error('pg pool idle client error', e));
   }
 
   /** 하나의 커넥션에서 begin/commit, 예외 시 rollback. */
   async tx<T>(fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
     const c = await this.connect();
+    let broken: Error | undefined;
     try {
       await c.query('begin');
       const result = await fn(c);
       await c.query('commit');
       return result;
     } catch (e) {
-      await c.query('rollback');
+      // rollback 이 실패하면 커넥션이 깨진 것이다. 원래 예외를 살리고 커넥션은 버린다.
+      await c.query('rollback').catch((err: Error) => (broken = err));
       throw e;
     } finally {
-      c.release();
+      c.release(broken);
     }
   }
 
