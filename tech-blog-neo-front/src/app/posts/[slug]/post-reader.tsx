@@ -16,6 +16,7 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
   const [progress, setProgress] = useState(0);
   const [like, setLike] = useState({ liked: post.liked, likeCount: post.likeCount });
   const [likeError, setLikeError] = useState("");
+  const [liking, setLiking] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [stopped, setStopped] = useState<number | null>(null);
   const articleRef = useRef<HTMLElement>(null);
@@ -69,11 +70,15 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
   }, [post.slug, post.title, sections]);
 
   const toggleLike = async () => {
+    if (liking) return;
+    setLiking(true);
     setLikeError("");
     try {
       setLike(await send<{ liked: boolean; likeCount: number }>("POST", `/posts/${encodeURIComponent(post.slug)}/like`));
     } catch (e) {
       setLikeError((e as Error).message);
+    } finally {
+      setLiking(false);
     }
   };
 
@@ -192,7 +197,7 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
             {editHref && <Link href={editHref} className="ff-btn quiet">수정</Link>}
             {deleteHref && <button type="button" onClick={deletePost} className="ff-btn quiet text-[var(--err)]">삭제</button>}
             {post.status === "published" && (
-              <button type="button" aria-pressed={like.liked} onClick={toggleLike} className={`ff-btn ${like.liked ? "primary" : "quiet"}`}>
+              <button type="button" aria-pressed={like.liked} onClick={toggleLike} disabled={liking} className={`ff-btn ${like.liked ? "primary" : "quiet"}`}>
                 {like.liked ? "좋아요 취소" : "좋아요"}
                 <span className="num">{like.likeCount}</span>
               </button>
