@@ -139,7 +139,7 @@ export class PostsController {
     limit = Math.min(Math.max(limit, 1), 50);
     const { rows } = await this.db.query(
       `with f as (
-         select * from posts p
+         select p.id, p.view_count, p.sort_date from posts p
          where p.status = 'published'
            and ($1::text is null or exists (
                  select 1 from post_tags pt join tags t on t.id = pt.tag_id
@@ -150,9 +150,9 @@ export class PostsController {
        )
        select (select count(*)::int from f) total,
               coalesce((select json_agg(x) from (
-                select ${SUMMARY} from f p
-                order by case when $7 then p.view_count end desc nulls last,
-                         p.sort_date desc, p.id desc
+                select ${SUMMARY} from f join posts p on p.id = f.id
+                order by case when $7 then f.view_count end desc nulls last,
+                         f.sort_date desc, f.id desc
                 limit $4 offset $5) x), '[]') items`,
       [
         tag || null,
