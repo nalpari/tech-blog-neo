@@ -89,4 +89,39 @@ describe('Auth (e2e)', () => {
     await request(http).get('/auth/me').expect(401);
     await request(http).post('/auth/logout').expect(204);
   });
+
+  it('로그인 뒤 next 경로로 돌아온다 (같은 사이트 경로만)', async () => {
+    const http = app.getHttpServer();
+    const cookies = (r: request.Response) =>
+      ([] as string[]).concat(r.headers['set-cookie'] ?? []);
+    const start = await request(http)
+      .get('/auth/google?next=/write?slug=a')
+      .expect(302);
+    const state = new URL(start.headers.location).searchParams.get('state')!;
+    const next = cookies(start).find((c) => c.startsWith('oauth_next='))!;
+    expect(decodeURIComponent(next)).toContain('oauth_next=/write?slug=a');
+
+    for (const bad of ['//evil.com', '/\\evil.com', 'https://evil.com']) {
+      const r = await request(http)
+        .get(`/auth/google?next=${encodeURIComponent(bad)}`)
+        .expect(302);
+      expect(cookies(r).some((c) => c.startsWith('oauth_next=/'))).toBe(false);
+    }
+
+    globalThis.fetch = (async () =>
+      Response.json({
+        id_token: `x.${b64({
+          aud: 'test-client',
+          iss: 'https://accounts.google.com',
+          email_verified: true,
+          email: 'yoo32767@gmail.com',
+        })}.x`,
+      })) as typeof fetch;
+    const cb = await request(http)
+      .get(`/auth/google/callback?code=c&state=${state}`)
+      .set('Cookie', `oauth_state=${state}; ${next.split(';')[0]}`)
+      .expect(302);
+    const front = (process.env.FRONT_URL ?? '').replace(/\/$/, '');
+    expect(cb.headers.location).toBe(`${front}/write?slug=a`);
+  });
 });

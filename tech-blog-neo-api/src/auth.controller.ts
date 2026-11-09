@@ -18,6 +18,7 @@ import {
   ApiExcludeEndpoint,
   ApiNoContentResponse,
   ApiOkResponse,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -33,6 +34,10 @@ import {
 import { Db } from './db.js';
 
 const STATE = 'oauth_state';
+const NEXT = 'oauth_next';
+// 로그인 뒤 돌아갈 프론트 경로. 같은 사이트 안의 절대 경로만 받는다.
+const safeNext = (next?: string) =>
+  next && /^\/(?![/\\])/.test(next) ? next : undefined;
 
 const cookieOpts = (maxAgeSec: number) => ({
   httpOnly: true,
@@ -50,11 +55,16 @@ export class AuthController {
   @Get('google')
   @ApiResponse({
     status: 302,
-    description: 'Google 로그인 화면으로 이동. 끝나면 FRONT_URL 로 돌아온다',
+    description:
+      'Google 로그인 화면으로 이동. 끝나면 FRONT_URL(+next 경로)로 돌아온다',
   })
-  google(@Res() res: Response) {
+  @ApiQuery({ name: 'next', required: false, example: '/posts/my-post' })
+  google(@Res() res: Response, @Query('next') next?: string) {
     const state = randomBytes(16).toString('hex');
     res.cookie(STATE, state, cookieOpts(600));
+    const back = safeNext(next);
+    if (back) res.cookie(NEXT, back, cookieOpts(600));
+    else res.clearCookie(NEXT, { path: '/' });
     const q = new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID!,
       redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
@@ -75,6 +85,7 @@ export class AuthController {
     @Res() res: Response,
   ) {
     res.clearCookie(STATE, { path: '/' });
+    res.clearCookie(NEXT, { path: '/' });
     if (!code || !state || state !== readCookie(req, STATE)) {
       throw new UnauthorizedException('invalid oauth state');
     }
@@ -114,7 +125,8 @@ export class AuthController {
       claims.picture,
     );
     res.cookie(SESSION, signSession(userId), cookieOpts(SESSION_TTL));
-    res.redirect(process.env.FRONT_URL ?? '/');
+    const front = (process.env.FRONT_URL ?? '').replace(/\/$/, '');
+    res.redirect(front + (safeNext(readCookie(req, NEXT)) ?? '/'));
   }
 
   @Get('me')
