@@ -95,7 +95,7 @@ describe('글/태그/좋아요/프로필 쓰기 (e2e)', () => {
     });
 
     await as(null).get(`/posts/${postSlug}`).expect(404);
-    await as(user).patch(`/posts/${postSlug}`, { title: 'x' }).expect(404);
+    await as(user).patch(`/posts/${postSlug}`, { title: 'x' }).expect(403); // user 역할은 글 수정 불가
     expect(
       (await as(admin).get('/posts/mine').expect(200)).body.map(
         (p: any) => p.slug,
@@ -149,6 +149,21 @@ describe('글/태그/좋아요/프로필 쓰기 (e2e)', () => {
     await as(user).post('/posts', { slug, title: 'mine' }).expect(201);
     await as(user).patch(`/posts/${slug}`, { title: 'mine2' }).expect(200);
     await as(user).del(`/tags/${tagSlug}`).expect(403); // 태그 삭제는 admin 만
+    // featured 는 admin 만, 'mine' 은 GET /posts/mine 과 겹쳐서 예약어
+    await as(user).patch(`/posts/${slug}`, { featured: true }).expect(403);
+    await as(user)
+      .post('/posts', { slug: `${slug}-f`, title: 'f', featured: true })
+      .expect(403);
+    await as(user).post('/posts', { slug: 'mine', title: 'x' }).expect(400);
+    // user 로 강등되면 자기 글도 못 고친다
+    await as(admin)
+      .patch(`/profiles/${userName}/role`, { role: 'user' })
+      .expect(200);
+    await as(user).patch(`/posts/${slug}`, { title: 'x' }).expect(403);
+    await as(user).del(`/posts/${slug}`).expect(403);
+    await as(admin)
+      .patch(`/profiles/${userName}/role`, { role: 'author' })
+      .expect(200);
     await as(user).del(`/posts/${slug}`).expect(204);
     await as(admin).del(`/tags/${tagSlug}`).expect(204);
   });

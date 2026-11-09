@@ -85,6 +85,18 @@ const POST_SCHEMA = {
   },
 };
 
+// GET /posts/mine 이 :slug 보다 먼저 매칭되므로 글 slug 로 쓸 수 없다.
+const RESERVED_SLUGS = new Set(['mine']);
+
+/** slug 형식·예약어 확인, featured 는 admin 만 바꿀 수 있다. */
+function checkPostInput(f: Record<string, unknown>, user: User) {
+  checkSlug(f.slug);
+  if (RESERVED_SLUGS.has(f.slug as string))
+    throw new BadRequestException(`slug "${f.slug as string}" is reserved`);
+  if ('featured' in f && user.role !== 'admin')
+    throw new ForbiddenException('only admin can set featured');
+}
+
 @ApiTags('posts')
 @Controller('posts')
 export class PostsController {
@@ -200,7 +212,7 @@ export class PostsController {
   async create(@Req() req: Request, @Body() body: unknown) {
     const user = await requireUser(this.db, req, 'admin', 'author');
     const f = pick(body, INPUT, NON_NULL, ['slug', 'title']);
-    checkSlug(f.slug);
+    checkPostInput(f, user);
     const cols = Object.keys(COLUMNS).filter((k) => k in f);
     await this.db.tx(async (c) => {
       const { rows } = await c.query(
@@ -234,10 +246,10 @@ export class PostsController {
     @Req() req: Request,
     @Body() body: unknown,
   ) {
-    const user = await requireUser(this.db, req);
+    const user = await requireUser(this.db, req, 'admin', 'author');
     const id = await this.ownedPostId(slug, user);
     const f = pick(body, INPUT, NON_NULL);
-    checkSlug(f.slug);
+    checkPostInput(f, user);
     const cols = Object.keys(COLUMNS).filter((k) => k in f);
     await this.db.tx(async (c) => {
       if (cols.length) {
@@ -263,7 +275,10 @@ export class PostsController {
   @ApiResponse({ status: 404, description: '없음', schema: ref('Error') })
   @HttpCode(204)
   async remove(@Param('slug') slug: string, @Req() req: Request) {
-    const id = await this.ownedPostId(slug, await requireUser(this.db, req));
+    const id = await this.ownedPostId(
+      slug,
+      await requireUser(this.db, req, 'admin', 'author'),
+    );
     await this.db.query('delete from posts where id = $1', [id]);
   }
 
