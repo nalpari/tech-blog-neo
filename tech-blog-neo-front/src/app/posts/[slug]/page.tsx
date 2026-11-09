@@ -22,7 +22,8 @@ async function Post({ params }: Pick<PageProps<"/posts/[slug]">, "params">) {
     getAuthed<Me>("/auth/me"),
   ]);
   if (!post) notFound();
-  const isAuthor = post.author.username === me?.username;
+  // API 의 수정·삭제 권한과 같다: 작성자 또는 admin.
+  const canEdit = post.author.username === me?.username || me?.role === "admin";
   const [profile, all] = await Promise.all([
     get<Profile>(`/profiles/${encodeURIComponent(post.author.username)}`),
     // ponytail: 이전·다음 글을 찾으려고 최신순 전체를 받는다. 글이 수백 편이 되면 API 에 이웃 조회를 추가.
@@ -37,8 +38,8 @@ async function Post({ params }: Pick<PageProps<"/posts/[slug]">, "params">) {
         profile={profile}
         sections={sectionsOf(content)}
         body={<Markdown content={content} />}
-        editHref={isAuthor ? `/write?slug=${encodeURIComponent(post.slug)}` : undefined}
-        deleteHref={isAuthor ? `/posts/${encodeURIComponent(post.slug)}` : undefined}
+        editHref={canEdit ? `/write?slug=${encodeURIComponent(post.slug)}` : undefined}
+        deleteHref={canEdit ? `/posts/${encodeURIComponent(post.slug)}` : undefined}
       />
       <hr className="ff-fold" />
       <nav aria-label="이전 글과 다음 글" className="grid md:grid-cols-2">
