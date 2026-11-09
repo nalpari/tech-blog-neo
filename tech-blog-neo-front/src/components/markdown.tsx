@@ -7,13 +7,20 @@ export type Section = { id: string; title: string };
 
 const headingId = (line?: number) => `h-${line}`;
 
-/** `## ` 제목을 목차로. id 는 렌더러의 h2 와 같은 줄 번호 기반. */
+/**
+ * `## ` 제목을 목차로. id 는 렌더러의 h2 와 같은 줄 번호 기반.
+ * 읽기 위치는 이 id 로 DOM 제목을 찾으므로, 렌더러가 만든 다른 h2(setext 등)가 섞여도 어긋나지 않는다.
+ */
 export function sectionsOf(md: string): Section[] {
   const out: Section[] = [];
-  let fence = false;
+  let fence = ""; // 열린 펜스 표시 (``` 나 ~~~, 길이 포함). 같은 문자로 같거나 긴 줄이 닫는다.
   md.split("\n").forEach((l, i) => {
-    if (/^\s*(```|~~~)/.test(l)) fence = !fence;
-    const m = !fence && /^##\s+(.+?)\s*#*$/.exec(l);
+    const f = /^ {0,3}(`{3,}|~{3,})/.exec(l)?.[1];
+    if (f && (!fence || (f[0] === fence[0] && f.length >= fence.length && /^ {0,3}[`~]+\s*$/.test(l)))) {
+      fence = fence ? "" : f;
+      return;
+    }
+    const m = !fence && /^ {0,3}##\s+(.+?)\s*#*$/.exec(l);
     if (m) out.push({ id: headingId(i + 1), title: m[1].replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[`*_]/g, "") });
   });
   return out;
@@ -24,7 +31,7 @@ const textOf = (n: Hast): string => n.value ?? (n.children ?? []).map(textOf).jo
 
 const components: Components = {
   h1: ({ node, children }) => <h2 id={headingId(node?.position?.start.line)} className="mb-5 mt-16 text-[30px] font-extrabold leading-[1.3] tracking-[-0.02em]">{children}</h2>,
-  h2: ({ node, children }) => <h2 id={headingId(node?.position?.start.line)} data-section className="mb-5 mt-16 scroll-mt-32 text-[27px] font-extrabold leading-[1.3] tracking-[-0.02em]">{children}</h2>,
+  h2: ({ node, children }) => <h2 id={headingId(node?.position?.start.line)} className="mb-5 mt-16 scroll-mt-32 text-[27px] font-extrabold leading-[1.3] tracking-[-0.02em]">{children}</h2>,
   h3: ({ children }) => <h3 className="mb-4 mt-10 text-[21px] font-bold leading-[1.4]">{children}</h3>,
   p: ({ children }) => <p className="mb-6">{children}</p>,
   a: ({ href, children }) => <a href={href} className="ff-link">{children}</a>,

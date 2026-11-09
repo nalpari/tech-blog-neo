@@ -32,13 +32,14 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
     const saved = readResume();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage 는 마운트 뒤에만 읽을 수 있다
     if (saved?.slug === post.slug) setStopped(saved.section);
+    // 목차 항목과 같은 순서로 제목을 id 로 찾는다. 인덱스가 곧 sections 의 인덱스다.
+    const heads = sections.map((s) => document.getElementById(s.id));
     const onScroll = () => {
       const el = articleRef.current;
       if (!el) return;
-      const heads = Array.from(el.querySelectorAll<HTMLElement>("[data-section]"));
       let idx = 0;
       heads.forEach((h, i) => {
-        if (h.getBoundingClientRect().top < window.innerHeight * 0.35) idx = i;
+        if (h && h.getBoundingClientRect().top < window.innerHeight * 0.35) idx = i;
       });
       const r = el.getBoundingClientRect();
       const p = Math.max(0, Math.min(100, Math.round((-r.top / Math.max(r.height - window.innerHeight, 1)) * 100)));
@@ -53,7 +54,7 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [post.slug, post.title]);
+  }, [post.slug, post.title, sections]);
 
   const toggleLike = async () => {
     setLikeError("");
