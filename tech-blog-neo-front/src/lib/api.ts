@@ -1,6 +1,7 @@
 // 브라우저와 서버 양쪽에서 쓰는 API 타입과 헬퍼. 인증 쿠키 전달은 server-api.ts.
 export const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-export const LOGIN_URL = `${API}/auth/google`;
+/** Google 로그인 시작점. next 는 로그인 뒤 돌아올 프론트 경로. */
+export const loginUrl = (next: string) => `${API}/auth/google?next=${encodeURIComponent(next)}`;
 
 export type Role = "admin" | "author" | "user";
 export type Author = { username: string; displayName: string | null; avatarUrl: string | null };
@@ -49,7 +50,7 @@ export async function getPosts(query: string, count = Infinity) {
   return { total: first.total, items: [first, ...rest].flatMap((r) => r.items).slice(0, count) };
 }
 
-/** 브라우저에서 세션 쿠키를 붙여 쓰기 요청. 401 이면 로그인으로 보낸다. */
+/** 브라우저에서 세션 쿠키를 붙여 쓰기 요청. 401 이면 확인을 받고 로그인으로 보낸다 (끝나면 이 페이지로 돌아옴). */
 export async function send<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(API + path, {
     method,
@@ -58,9 +59,11 @@ export async function send<T>(method: string, path: string, body?: unknown): Pro
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (res.status === 401) {
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- API 서버(외부 origin)의 OAuth 시작점
-    window.location.href = LOGIN_URL;
-    throw new Error("로그인이 필요합니다.");
+    // 바로 떠나면 에디터에 쓰던 내용이 사라지므로 먼저 묻는다.
+    if (window.confirm("로그인이 필요합니다. 로그인하고 이 페이지로 돌아올까요?\n저장하지 않은 내용은 사라집니다.")) {
+      window.location.href = loginUrl(window.location.pathname + window.location.search);
+    }
+    throw new Error("로그인이 필요합니다. 다른 탭에서 로그인한 뒤 다시 시도할 수 있어요.");
   }
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) {

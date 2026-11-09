@@ -6,9 +6,20 @@ import { useEffect, useRef, useState } from "react";
 export function Rail({ side }: { side: "left" | "right" }) {
   const [step, setStep] = useState(0);
   useEffect(() => {
-    const read = () => setStep(window.scrollY % 36);
+    // 프레임당 한 번만 갱신한다. 값이 같으면 React 가 다시 그리지 않는다.
+    let frame = 0;
+    const read = () => {
+      if (!frame)
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          setStep(Math.round(window.scrollY) % 36);
+        });
+    };
     window.addEventListener("scroll", read, { passive: true });
-    return () => window.removeEventListener("scroll", read);
+    return () => {
+      window.removeEventListener("scroll", read);
+      cancelAnimationFrame(frame);
+    };
   }, []);
   return (
     <div className={`ff-rail ${side}`} aria-hidden="true">

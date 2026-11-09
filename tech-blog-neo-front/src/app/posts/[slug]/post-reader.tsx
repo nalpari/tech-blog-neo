@@ -16,6 +16,7 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
   const [progress, setProgress] = useState(0);
   const [like, setLike] = useState({ liked: post.liked, likeCount: post.likeCount });
   const [likeError, setLikeError] = useState("");
+  const [liking, setLiking] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [stopped, setStopped] = useState<number | null>(null);
   const articleRef = useRef<HTMLElement>(null);
@@ -32,16 +33,22 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
     const saved = readResume();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage 는 마운트 뒤에만 읽을 수 있다
     if (saved?.slug === post.slug) setStopped(saved.section);
-    const onScroll = () => {
+    // 목차 항목과 같은 순서로 제목을 id 로 찾는다. 인덱스가 곧 sections 의 인덱스다.
+    const heads = sections.map((s) => document.getElementById(s.id));
+    let frame = 0;
+    let last = "";
+    const measure = () => {
+      frame = 0;
       const el = articleRef.current;
       if (!el) return;
-      const heads = Array.from(el.querySelectorAll<HTMLElement>("[data-section]"));
       let idx = 0;
       heads.forEach((h, i) => {
-        if (h.getBoundingClientRect().top < window.innerHeight * 0.35) idx = i;
+        if (h && h.getBoundingClientRect().top < window.innerHeight * 0.35) idx = i;
       });
       const r = el.getBoundingClientRect();
       const p = Math.max(0, Math.min(100, Math.round((-r.top / Math.max(r.height - window.innerHeight, 1)) * 100)));
+      if (`${idx}:${p}` === last) return;
+      last = `${idx}:${p}`;
       setCurrent(idx);
       setProgress(p);
       if (p >= 95) {
@@ -50,17 +57,28 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
         writeResume({ slug: post.slug, title: post.title, progress: p, section: idx });
       }
     };
-    onScroll();
+    // 스크롤 이벤트는 프레임당 한 번만 측정한다.
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [post.slug, post.title]);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [post.slug, post.title, sections]);
 
   const toggleLike = async () => {
+    if (liking) return;
+    setLiking(true);
     setLikeError("");
     try {
       setLike(await send<{ liked: boolean; likeCount: number }>("POST", `/posts/${encodeURIComponent(post.slug)}/like`));
     } catch (e) {
       setLikeError((e as Error).message);
+    } finally {
+      setLiking(false);
     }
   };
 
@@ -179,7 +197,7 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
             {editHref && <Link href={editHref} className="ff-btn quiet">수정</Link>}
             {deleteHref && <button type="button" onClick={deletePost} className="ff-btn quiet text-[var(--err)]">삭제</button>}
             {post.status === "published" && (
-              <button type="button" aria-pressed={like.liked} onClick={toggleLike} className={`ff-btn ${like.liked ? "primary" : "quiet"}`}>
+              <button type="button" aria-pressed={like.liked} onClick={toggleLike} disabled={liking} className={`ff-btn ${like.liked ? "primary" : "quiet"}`}>
                 {like.liked ? "좋아요 취소" : "좋아요"}
                 <span className="num">{like.likeCount}</span>
               </button>

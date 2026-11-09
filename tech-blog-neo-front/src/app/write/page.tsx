@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { LOGIN_URL, get, type Me, type PostDetail, type TagInfo } from "@/lib/api";
+import { get, loginUrl, type Me, type PostDetail, type TagInfo } from "@/lib/api";
 import { getAuthed } from "@/lib/server-api";
 import { Loading, Sheet, Wordmark } from "@/components/ui";
 import { TopNav } from "@/components/top-nav";
@@ -40,9 +40,10 @@ function Gate({ title, body, href, cta, google = false }: { title: string; body:
 
 async function WriteContent({ searchParams }: Pick<PageProps<"/write">, "searchParams">) {
   const { slug } = await searchParams;
+  const here = typeof slug === "string" ? `/write?slug=${encodeURIComponent(slug)}` : "/write";
   // S3 조회가 실패해도 에디터는 열고, 커버는 기본 이미지와 직접 입력으로 고른다.
   const [me, tags, covers] = await Promise.all([getAuthed<Me>("/auth/me"), get<TagInfo[]>("/tags"), getAuthed<string[]>("/covers").catch(() => null)]);
-  if (!me) return <Gate google title="로그인이 필요해요" body="팀원 Google 계정으로 로그인하면 글을 쓸 수 있습니다." href={LOGIN_URL} cta="Google로 로그인" />;
+  if (!me) return <Gate google title="로그인이 필요해요" body="팀원 Google 계정으로 로그인하면 글을 쓸 수 있습니다." href={loginUrl(here)} cta="Google로 로그인" />;
   if (me.role === "user") return <Gate title="글쓰기 권한이 없어요" body="저자 권한은 관리자가 줍니다. 관리자에게 요청하세요." href="/" cta="글 목록으로" />;
   const post = typeof slug === "string" ? await getAuthed<PostDetail>(`/posts/${encodeURIComponent(slug)}`) : null;
   if (typeof slug === "string" && !post) notFound();
