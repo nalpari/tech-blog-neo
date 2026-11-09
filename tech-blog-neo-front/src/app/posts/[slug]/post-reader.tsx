@@ -34,7 +34,10 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
     if (saved?.slug === post.slug) setStopped(saved.section);
     // 목차 항목과 같은 순서로 제목을 id 로 찾는다. 인덱스가 곧 sections 의 인덱스다.
     const heads = sections.map((s) => document.getElementById(s.id));
-    const onScroll = () => {
+    let frame = 0;
+    let last = "";
+    const measure = () => {
+      frame = 0;
       const el = articleRef.current;
       if (!el) return;
       let idx = 0;
@@ -43,6 +46,8 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
       });
       const r = el.getBoundingClientRect();
       const p = Math.max(0, Math.min(100, Math.round((-r.top / Math.max(r.height - window.innerHeight, 1)) * 100)));
+      if (`${idx}:${p}` === last) return;
+      last = `${idx}:${p}`;
       setCurrent(idx);
       setProgress(p);
       if (p >= 95) {
@@ -51,9 +56,16 @@ export function PostReader({ post, profile, sections, body, editHref, deleteHref
         writeResume({ slug: post.slug, title: post.title, progress: p, section: idx });
       }
     };
-    onScroll();
+    // 스크롤 이벤트는 프레임당 한 번만 측정한다.
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
   }, [post.slug, post.title, sections]);
 
   const toggleLike = async () => {
